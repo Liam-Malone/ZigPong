@@ -1,3 +1,3 @@
 # Pong
 
-It's gonna be a graphical pong game... written in Zig
+GUI Pong game in Zig, using SDL
