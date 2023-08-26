@@ -1,7 +1,7 @@
 //TODO:
-// - Add ball-to-paddle collision
+// - Improve ball-to-paddle collision (vertical)
 // - Add score-counting and win/lose-conditions
-// - Add textual rendering
+// - Add text rendering
 const std = @import("std");
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
