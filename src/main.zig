@@ -223,8 +223,6 @@ pub fn main() !void {
             }
         }
         
-       // update(DELTA_TIME_SEC, ball, player, computer);
-
         set_color(renderer, BACKGROUND_COLOR);
         _ = c.SDL_RenderClear(renderer);
 
