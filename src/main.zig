@@ -12,7 +12,8 @@ const Color = enum{
     white,
 };
 const Paddle = struct {
-    is_player: bool,
+    is_human: bool,
+    player_number: u8,
     x: f32,
     y: f32,
     height: f32,
@@ -57,8 +58,8 @@ fn set_color(renderer: *c.SDL_Renderer, color: u32) void {
 }
 
 fn collide_vert_border(paddle: *Paddle) bool {
-    if ((paddle.y+paddle.dy >= WINDOW_HEIGHT and paddle.dy > 0) or (paddle.y+paddle.height+paddle.dy <= 0 and paddle.dy < 0)) {
-        if (paddle.is_player) {
+    if ((paddle.y+paddle.dy >= WINDOW_HEIGHT-paddle.height and paddle.dy > 0) or (paddle.y+paddle.dy <= 0 and paddle.dy < 0)) {
+        if (paddle.is_human) {
             paddle.dy = 0;
         }
         return true;
@@ -66,41 +67,51 @@ fn collide_vert_border(paddle: *Paddle) bool {
     return false;
 }
 
+fn collide(ball: *Ball, paddle: *Paddle) void {
+    if (overlaps(&ball.rect, &paddle.rect) != 0){
+        //if (ball.x + ball.dx)
+        switch(paddle.player_number){
+            1 => {
+                if (ball.x + ball.dx >= paddle.x - ball.size) {
+                    ball.dx *= -1;
+                }
+            },
+            2 => {
+                if (ball.x + ball.dx <= paddle.x + paddle.width){
+                    ball.dx *= -1;
+                }
+            },
+            else => unreachable,
+        }
+    }
+}
+
 fn update(ball: *Ball, player: *Paddle, computer: *Paddle) void{
     if (collide_vert_border(computer)) {
         computer.dy *= -1;
-    }    ball.y += ball.dy;
+    }
+    ball.y += ball.dy;
     _ = collide_vert_border(player);
 
 
     if (overlaps(&ball.rect, &player.rect) != 0) {
         ball.y = player.y - player.width/2 - ball.size - 1.0;
     }
-    if (ball.x <= 0 or ball.x+ball.size >= WINDOW_WIDTH) {
+    if (ball.x <= 0 or ball.x + ball.size >= WINDOW_WIDTH) {
         ball.x = WINDOW_WIDTH/2;
     }
-    if (ball.y <= 0 or ball.y+ball.size >= WINDOW_HEIGHT) {
+    if (ball.y + ball.dy <= 0 or ball.y + ball.dy >= WINDOW_HEIGHT + ball.size) {
         ball.dy *= -1;
     }
+
+    collide(ball, player);
+    collide(ball, computer);
 
     ball.x += ball.dx;
     player.y += player.dy;
     computer.y += computer.dy;
 }
 
-//fn update(dt: f32, ball: Ball, player: Paddle, comp: Paddle) void {
-//    _ = comp;
-//    _ = dt;
-//    if (!pause and started) {
-//        if (overlaps(&ball.rect, &player.rect) != 0) {
-//            ball.y = player.y - player.width/2 - ball.size - 1.0;
-//            return;
-//        }
-//        //bar_collision(dt);
-//        //horz_collision(dt);
-//        //vert_collision(dt);
-//    }
-//}
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player: Paddle, comp: Paddle) void {
     //set_color(renderer, 
@@ -120,10 +131,11 @@ var started = false;
 var pause = false;
 pub fn main() !void {
     var player = Paddle{
-        .is_player = true,
+        .is_human = true,
+        .player_number = 1,
         .x = WINDOW_WIDTH - 60,
         .y = WINDOW_HEIGHT/2,
-        .height = 30,
+        .height = 60,
         .width = 20,
         .dy = 0,
         .color = Color.white,
@@ -133,10 +145,11 @@ pub fn main() !void {
     player.rect = make_rect(player.x, player.y, player.width, player.height);
 
     var computer = Paddle{
-        .is_player = false,
+        .is_human = false,
+        .player_number = 2,
         .x = 30,
         .y = WINDOW_HEIGHT/2,
-        .height = 30,
+        .height = 60,
         .width = 20,
         .dy = 0,
         .color = Color.white,
