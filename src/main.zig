@@ -10,8 +10,9 @@ const c = @cImport({
 });
 const overlaps = c.SDL_HasIntersection;
 
-const Color = enum{
-    white,
+const Color = enum(u32){
+    white = 0xFFFFFFFF,
+    dark_gray = 0xFF181818,
 };
 const Player = enum{
     player_one,
@@ -45,7 +46,7 @@ const FPS = 60;
 const DELTA_TIME_SEC: f32 = 1.0/@as(f32, FPS);
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
-const BACKGROUND_COLOR = 0xFF181818;
+const BACKGROUND_COLOR = Color.dark_gray;
 const MAX_SCORE = 10;
 const MAX_PLAYER_SPEED = 3;
 const SPEED_INCREASE = 0.5;
@@ -61,7 +62,8 @@ fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
     };
 }
 
-fn set_color(renderer: *c.SDL_Renderer, color: u32) void {
+fn set_color(renderer: *c.SDL_Renderer, col: Color) void {
+    var color = @intFromEnum(col);
     const r: u8 = @truncate((color >> (0*8)) & 0xFF);
     const g: u8 = @truncate((color >> (1*8)) & 0xFF);
     const b: u8 = @truncate((color >> (2*8)) & 0xFF);
@@ -95,7 +97,6 @@ fn win(score: u8) void {
         game_over = true;
     }
 }
-
 
 fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
     win(player_1.score);
@@ -136,17 +137,15 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
 }
 
 
-fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, comp: Paddle) void {
-    //set_color(renderer, 
-    var local_color: u32 = 0xFFFFFFFF;
-    set_color(renderer, local_color);
+fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
+    set_color(renderer, ball.color);
     _ = c.SDL_RenderFillRect(renderer, &ball.rect);
 
-    set_color(renderer, local_color);
+    set_color(renderer, player_1.color);
     _ = c.SDL_RenderFillRect(renderer, &player_1.rect);
 
-    set_color(renderer, local_color);
-    _ = c.SDL_RenderFillRect(renderer, &comp.rect);
+    set_color(renderer, player_2.color);
+    _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
 var quit = false;
