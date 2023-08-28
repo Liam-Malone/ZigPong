@@ -1,14 +1,27 @@
 //TODO:
 // - Add text rendering
+// - Add win/lose-conditions
 // - Improve ball-to-paddle collision:
-//   - collide on top/bottom of paddle
 //   - stop ball getting stuck in paddle
-// - Add score-counting and win/lose-conditions
+//   - collide on top/bottom of paddle
+//      - probably opt for frame prediction on collision checks
 const std = @import("std");
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
+    @cInclude("SDL2/SDL_ttf.h");
 });
 const overlaps = c.SDL_HasIntersection;
+
+const FPS = 60;
+const DELTA_TIME_SEC: f32 = 1.0/@as(f32, FPS);
+const WINDOW_WIDTH = 800;
+const WINDOW_HEIGHT = 600;
+const BACKGROUND_COLOR = Color.dark_gray;
+const MAX_SCORE = 10;
+const MAX_PLAYER_SPEED = 3;
+const SPEED_INCREASE = 0.5;
+const PADDLE_HEIGHT = 60;
+const PADDLE_WIDTH = 20;
 
 const Color = enum(u32){
     white = 0xFFFFFFFF,
@@ -31,7 +44,6 @@ const Paddle = struct {
     score: u8,
     rect: c.SDL_Rect,
 };
-
 const Ball = struct {
     x: f32,
     y: f32,
@@ -42,23 +54,27 @@ const Ball = struct {
     rect: c.SDL_Rect,
 };
 
-const FPS = 60;
-const DELTA_TIME_SEC: f32 = 1.0/@as(f32, FPS);
-const WINDOW_WIDTH = 800;
-const WINDOW_HEIGHT = 600;
-const BACKGROUND_COLOR = Color.dark_gray;
-const MAX_SCORE = 10;
-const MAX_PLAYER_SPEED = 3;
-const SPEED_INCREASE = 0.5;
-const PADDLE_HEIGHT = 60;
-const PADDLE_WIDTH = 20;
-
 fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
     return c.SDL_Rect {
         .x = @intFromFloat(x),
         .y = @intFromFloat(y),
         .w = @intFromFloat(w),
         .h = @intFromFloat(h)
+    };
+}
+
+fn make_sdl_color(col: Color) c.SDL_Color {
+    var color = @intFromEnum(col);
+    const r: u8 = @truncate((color >> (0*8)) & 0xFF);
+    const g: u8 = @truncate((color >> (1*8)) & 0xFF);
+    const b: u8 = @truncate((color >> (2*8)) & 0xFF);
+    const a: u8 = @truncate((color >> (3*8)) & 0xFF);
+
+    return c.SDL_Color {
+        .r = r,
+        .g = g,
+        .b = b,
+        .a = a,
     };
 }
 
@@ -134,8 +150,11 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
     ball.x += ball.dx;
     player_1.y += player_1.dy;
     player_2.y += player_2.dy;
-}
+    ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
+    player_1.rect = make_rect(player_1.x, player_1.y, player_1.width, player_1.height);
+    player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
 
+}
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
     set_color(renderer, ball.color);
@@ -148,12 +167,14 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
     _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
+
 var quit = false;
 var started = false;
 var pause = false;
 var game_over = false;
 
 pub fn main() !void {
+
     var player_1 = Paddle{
         .is_human = true,
         .player = Player.player_one,
@@ -183,8 +204,8 @@ pub fn main() !void {
     player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
 
     var ball = Ball{
-        .x = WINDOW_HEIGHT/2,
-        .y = WINDOW_WIDTH/2,
+        .x = WINDOW_WIDTH/2,
+        .y = WINDOW_HEIGHT/2,
         .size = 8,
         .dx = 0,
         .dy = 0,
@@ -194,25 +215,30 @@ pub fn main() !void {
     ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
 
     if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
-        c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
         return error.SDLInitializationFailed;
     }
     defer c.SDL_Quit();
+    
+    if (c.TTF_Init() < 0) {
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
+    }
+    defer c.TTF_Quit();
 
     const window = c.SDL_CreateWindow("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0) orelse {
-        c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyWindow(window);
 
     const renderer = c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED) orelse {
-        c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyRenderer(renderer);
 
     const keyboard = c.SDL_GetKeyboardState(null);
-    while (!quit and !game_over) {
+    while (!quit) {
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.@"type") {
@@ -260,10 +286,6 @@ pub fn main() !void {
         c.SDL_Delay(1000/FPS);
 
         update(&ball, &player_1, &player_2);
-        
-        ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
-        player_1.rect = make_rect(player_1.x, player_1.y, player_1.width, player_1.height);
-        player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
     }
     
 }
