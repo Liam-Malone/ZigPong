@@ -22,6 +22,7 @@ const MAX_PLAYER_SPEED = 3;
 const SPEED_INCREASE = 0.5;
 const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
+const FONT_FILE = @embedFile("DejaVuSans.ttf");
 
 const Color = enum(u32){
     white = 0xFFFFFFFF,
@@ -175,6 +176,72 @@ var game_over = false;
 
 pub fn main() !void {
 
+    if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    }
+    defer c.SDL_Quit();
+    
+    if (c.TTF_Init() < 0) {
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
+    }
+    defer c.TTF_Quit();
+
+    const window = c.SDL_CreateWindow("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0) orelse {
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyWindow(window);
+
+    const renderer = c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED) orelse {
+        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyRenderer(renderer);
+
+    const font_rw = c.SDL_RWFromConstMem(
+        @ptrCast(&FONT_FILE[0]),
+        @intCast(FONT_FILE.len),
+    ) orelse {
+        c.SDL_Log("Unable to get RWFromConstMem: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+
+    defer std.debug.assert(c.SDL_RWclose(font_rw) == 0);
+    
+    const font = c.TTF_OpenFontRW(font_rw, 0, 16) orelse {
+        c.SDL_Log("Unable to load font: %s", c.TTF_GetError());
+        return error.SDLInitializationFailed;
+    };
+
+    defer c.TTF_CloseFont(font);
+    var font_surface = c.TTF_RenderUTF8_Solid(
+        font,
+        "All your codebase are belong to us.",
+        c.SDL_Color{
+            .r = 0xFF,
+            .g = 0xFF,
+            .b = 0xFF,
+            .a = 0xFF,
+        },
+    ) orelse {
+        c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_FreeSurface(font_surface);
+
+    const font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+        c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyTexture(font_tex);
+
+    var font_rect: c.SDL_Rect = .{
+        .w = font_surface.*.w,
+        .h = font_surface.*.h,
+        .x = 0,
+        .y = 0,
+    };
     var player_1 = Paddle{
         .is_human = true,
         .player = Player.player_one,
@@ -213,29 +280,6 @@ pub fn main() !void {
         .rect = undefined,
     };
     ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
-
-    if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    }
-    defer c.SDL_Quit();
-    
-    if (c.TTF_Init() < 0) {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-    }
-    defer c.TTF_Quit();
-
-    const window = c.SDL_CreateWindow("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0) orelse {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    };
-    defer c.SDL_DestroyWindow(window);
-
-    const renderer = c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED) orelse {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    };
-    defer c.SDL_DestroyRenderer(renderer);
 
     const keyboard = c.SDL_GetKeyboardState(null);
     while (!quit) {
@@ -279,6 +323,11 @@ pub fn main() !void {
         
         set_color(renderer, BACKGROUND_COLOR);
         _ = c.SDL_RenderClear(renderer);
+
+        //font_surface = c.TTF_RenderUTF8_Solid(font, "Score:", make_sdl_color(Color.white));
+        // will need to probably create a loop for updating this
+
+        _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
 
         render(renderer, ball, player_1, player_2);
 
