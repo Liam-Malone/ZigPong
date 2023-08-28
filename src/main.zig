@@ -1,10 +1,12 @@
 //TODO:
-// - Add text rendering
-// - Add win/lose-conditions
-// - Improve ball-to-paddle collision:
+// - [x] Add text rendering
+// - [x] Add win/loss conditions
+// - [ ] Actively update rendered score for each player
+// - [ ] Add win/loss screen (with replay option)
+// - [ ] Improve ball-to-paddle collision:
 //   - stop ball getting stuck in paddle
 //   - collide on top/bottom of paddle
-//      - probably opt for frame prediction on collision checks
+//    (probably opt for frame prediction on collision checks)
 const std = @import("std");
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
@@ -224,7 +226,7 @@ pub fn main() !void {
 
     defer std.debug.assert(c.SDL_RWclose(font_rw) == 0);
     
-    const font = c.TTF_OpenFontRW(font_rw, 0, 16) orelse {
+    const font = c.TTF_OpenFontRW(font_rw, 0, 30) orelse {
         c.SDL_Log("Unable to load font: %s", c.TTF_GetError());
         return error.SDLInitializationFailed;
     };
@@ -349,8 +351,8 @@ pub fn main() !void {
         font_rect = .{
             .w = font_surface.*.w,
             .h = font_surface.*.h,
-            .x = 0,
-            .y = 0,
+            .x = 60,
+            .y = 20,
         };
         font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
             c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
