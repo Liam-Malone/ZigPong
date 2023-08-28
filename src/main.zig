@@ -1,7 +1,7 @@
 //TODO:
 // - [x] Add text rendering
 // - [x] Add win/loss conditions
-// - [ ] Actively update rendered score for each player
+// - [x] Actively update rendered score for each player
 // - [ ] Add win/loss screen (with replay option)
 // - [ ] Improve ball-to-paddle collision:
 //   - stop ball getting stuck in paddle
@@ -13,9 +13,10 @@ const c = @cImport({
     @cInclude("SDL2/SDL_ttf.h");
 });
 const overlaps = c.SDL_HasIntersection;
+const allocator = std.heap.page_allocator;
 
 const FPS = 60;
-const DELTA_TIME_SEC: f32 = 1.0/@as(f32, FPS);
+const DELTA_TIME_SEC: f32 = 1.0 / @as(f32, FPS);
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
 const BACKGROUND_COLOR = Color.dark_gray;
@@ -26,11 +27,11 @@ const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
 
-const Color = enum(u32){
+const Color = enum(u32) {
     white = 0xFFFFFFFF,
     dark_gray = 0xFF181818,
 };
-const Player = enum{
+const Player = enum {
     player_one,
     player_two,
 };
@@ -44,7 +45,7 @@ const Paddle = struct {
     width: f32,
     dy: f32,
     color: Color,
-    score: u8,
+    score: u32,
     rect: c.SDL_Rect,
 };
 const Ball = struct {
@@ -63,26 +64,26 @@ const ScoreMessage = struct {
     font_size: u32,
     color: Color,
     rect: c.SDL_Rect,
-    text: *const[] u8,
+    text: *const []u8,
 };
 
 fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
-    return c.SDL_Rect {
-        .x = @intFromFloat(x),
-        .y = @intFromFloat(y),
-        .w = @intFromFloat(w),
-        .h = @intFromFloat(h)
+    return c.SDL_Rect{ 
+        .x = @intFromFloat(x), 
+        .y = @intFromFloat(y), 
+        .w = @intFromFloat(w), 
+        .h = @intFromFloat(h) 
     };
 }
 
 fn make_sdl_color(col: Color) c.SDL_Color {
     var color = @intFromEnum(col);
-    const r: u8 = @truncate((color >> (0*8)) & 0xFF);
-    const g: u8 = @truncate((color >> (1*8)) & 0xFF);
-    const b: u8 = @truncate((color >> (2*8)) & 0xFF);
-    const a: u8 = @truncate((color >> (3*8)) & 0xFF);
+    const r: u8 = @truncate((color >> (0 * 8)) & 0xFF);
+    const g: u8 = @truncate((color >> (1 * 8)) & 0xFF);
+    const b: u8 = @truncate((color >> (2 * 8)) & 0xFF);
+    const a: u8 = @truncate((color >> (3 * 8)) & 0xFF);
 
-    return c.SDL_Color {
+    return c.SDL_Color{
         .r = r,
         .g = g,
         .b = b,
@@ -92,15 +93,15 @@ fn make_sdl_color(col: Color) c.SDL_Color {
 
 fn set_color(renderer: *c.SDL_Renderer, col: Color) void {
     var color = @intFromEnum(col);
-    const r: u8 = @truncate((color >> (0*8)) & 0xFF);
-    const g: u8 = @truncate((color >> (1*8)) & 0xFF);
-    const b: u8 = @truncate((color >> (2*8)) & 0xFF);
-    const a: u8 = @truncate((color >> (3*8)) & 0xFF);
+    const r: u8 = @truncate((color >> (0 * 8)) & 0xFF);
+    const g: u8 = @truncate((color >> (1 * 8)) & 0xFF);
+    const b: u8 = @truncate((color >> (2 * 8)) & 0xFF);
+    const a: u8 = @truncate((color >> (3 * 8)) & 0xFF);
     _ = c.SDL_SetRenderDrawColor(renderer, r, g, b, a);
 }
 
 fn collide_vert_border(paddle: *Paddle) bool {
-    if ((paddle.y+paddle.dy >= WINDOW_HEIGHT-paddle.height and paddle.dy > 0) or (paddle.y+paddle.dy <= 0 and paddle.dy < 0)) {
+    if ((paddle.y + paddle.dy >= WINDOW_HEIGHT - paddle.height and paddle.dy > 0) or (paddle.y + paddle.dy <= 0 and paddle.dy < 0)) {
         if (paddle.is_human) {
             paddle.dy = 0;
         }
@@ -110,7 +111,7 @@ fn collide_vert_border(paddle: *Paddle) bool {
 }
 
 fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
-    switch(paddle.player){
+    switch (paddle.player) {
         Player.player_one => {
             ball.dx *= -1;
         },
@@ -120,13 +121,13 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     }
 }
 
-fn win(score: u8) void {
+fn win(score: u32) void {
     if (score == MAX_SCORE) {
         game_over = true;
     }
 }
 
-fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
+fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     win(player_1.score);
     win(player_2.score);
     if (collide_vert_border(player_2)) {
@@ -135,16 +136,15 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
     ball.y += ball.dy;
     _ = collide_vert_border(player_1);
 
-
     if (overlaps(&ball.rect, &player_1.rect) != 0) {
-        ball.y = player_1.y - player_1.width/2 - ball.size - 1.0;
+        ball.y = player_1.y - player_1.width / 2 - ball.size - 1.0;
     }
 
     if (ball.x + ball.size <= 0) {
-        ball.x = WINDOW_WIDTH/2;
+        ball.x = WINDOW_WIDTH / 2;
         player_1.score += 1;
     } else if (ball.x > WINDOW_WIDTH) {
-        ball.x = WINDOW_WIDTH/2;
+        ball.x = WINDOW_WIDTH / 2;
         player_2.score += 1;
     }
 
@@ -155,7 +155,7 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
     if (overlaps(&ball.rect, &player_1.rect) != 0) {
         paddle_collide(ball, player_1);
     }
-    if (overlaps(&ball.rect, &player_2.rect) != 0){
+    if (overlaps(&ball.rect, &player_2.rect) != 0) {
         paddle_collide(ball, player_2);
     }
 
@@ -165,7 +165,6 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void{
     ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
     player_1.rect = make_rect(player_1.x, player_1.y, player_1.width, player_1.height);
     player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
-
 }
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
@@ -179,12 +178,16 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
     _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
-fn render_text(score: u8, x: f32, y: f32) !void {
-    _ = y;
-    _ = x;
-    _ = score;
-}
-
+//fn render_text(font: *c.TTF_Font, font_surface: *c.SDL_Surface, font_tex: *c.SDL_Texture, renderer: *c.SDL_Renderer) void {
+//    font_surface = c.TTF_RenderUTF8_Solid(font, "Score: ", make_sdl_color(Color.white)) orelse {
+//            c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+//            return error.SDLInitializationFailed;
+//    };
+//    font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+//            c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+//            return error.SDLInitializationFailed;
+//    };
+//}
 
 var quit = false;
 var started = false;
@@ -192,13 +195,12 @@ var pause = false;
 var game_over = false;
 
 pub fn main() !void {
-
     if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
         c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
         return error.SDLInitializationFailed;
     }
     defer c.SDL_Quit();
-    
+
     if (c.TTF_Init() < 0) {
         c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
     }
@@ -225,7 +227,7 @@ pub fn main() !void {
     };
 
     defer std.debug.assert(c.SDL_RWclose(font_rw) == 0);
-    
+
     const font = c.TTF_OpenFontRW(font_rw, 0, 30) orelse {
         c.SDL_Log("Unable to load font: %s", c.TTF_GetError());
         return error.SDLInitializationFailed;
@@ -265,7 +267,7 @@ pub fn main() !void {
         .is_human = true,
         .player = Player.player_one,
         .x = WINDOW_WIDTH - 60,
-        .y = WINDOW_HEIGHT/2,
+        .y = WINDOW_HEIGHT / 2,
         .height = PADDLE_HEIGHT,
         .width = PADDLE_WIDTH,
         .dy = 0,
@@ -279,7 +281,7 @@ pub fn main() !void {
         .is_human = false,
         .player = Player.player_two,
         .x = 30,
-        .y = WINDOW_HEIGHT/2,
+        .y = WINDOW_HEIGHT / 2,
         .height = PADDLE_HEIGHT,
         .width = PADDLE_WIDTH,
         .dy = 0,
@@ -290,8 +292,8 @@ pub fn main() !void {
     player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
 
     var ball = Ball{
-        .x = WINDOW_WIDTH/2,
-        .y = WINDOW_HEIGHT/2,
+        .x = WINDOW_WIDTH / 2,
+        .y = WINDOW_HEIGHT / 2,
         .size = 8,
         .dx = 0,
         .dy = 0,
@@ -304,18 +306,20 @@ pub fn main() !void {
     while (!quit) {
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
-            switch (event.@"type") {
+            switch (event.type) {
                 c.SDL_QUIT => {
                     quit = true;
                 },
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
-                    ' ' => { pause = !pause; },
+                    ' ' => {
+                        pause = !pause;
+                    },
                     else => {},
                 },
                 else => {},
             }
         }
-         if (keyboard[c.SDL_SCANCODE_UP] != 0) {
+        if (keyboard[c.SDL_SCANCODE_UP] != 0) {
             if ((player_1.dy * -1) < MAX_PLAYER_SPEED) {
                 player_1.dy += (SPEED_INCREASE * -1);
             }
@@ -339,14 +343,18 @@ pub fn main() !void {
                 player_2.dy = 3;
             }
         }
-        
+
         set_color(renderer, BACKGROUND_COLOR);
         _ = c.SDL_RenderClear(renderer);
 
-        font_surface = c.TTF_RenderUTF8_Solid(font, "Score:", make_sdl_color(Color.white)) orelse {
+        var x: []u8 = try std.fmt.allocPrint(allocator, "Score: {d}", .{player_1.score});
+        //  ^ Creates []u8 but font_surface needs [*c]const u8
+        const str: [*c]const u8 = @ptrCast(x);
+        font_surface = c.TTF_RenderUTF8_Solid(font, str, make_sdl_color(Color.white)) orelse {
             c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
             return error.SDLInitializationFailed;
         };
+        allocator.free(x);
 
         font_rect = .{
             .w = font_surface.*.w,
@@ -354,18 +362,20 @@ pub fn main() !void {
             .x = 60,
             .y = 20,
         };
+
         font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
             c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
             return error.SDLInitializationFailed;
         };
+
+        //render_text(font, font_surface, font_tex, renderer);
         _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
 
         render(renderer, ball, player_1, player_2);
 
         c.SDL_RenderPresent(renderer);
-        c.SDL_Delay(1000/FPS);
+        c.SDL_Delay(1000 / FPS);
 
         update(&ball, &player_1, &player_2);
     }
-    
 }
