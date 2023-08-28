@@ -54,6 +54,15 @@ const Ball = struct {
     color: Color,
     rect: c.SDL_Rect,
 };
+//  ScoreMessage will be used and instantiated for each player
+const ScoreMessage = struct {
+    x: f32,
+    y: f32,
+    font_size: u32,
+    color: Color,
+    rect: c.SDL_Rect,
+    text: *const[] u8,
+};
 
 fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
     return c.SDL_Rect {
@@ -168,6 +177,12 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
     _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
+fn render_text(score: u8, x: f32, y: f32) !void {
+    _ = y;
+    _ = x;
+    _ = score;
+}
+
 
 var quit = false;
 var started = false;
@@ -215,6 +230,7 @@ pub fn main() !void {
     };
 
     defer c.TTF_CloseFont(font);
+
     var font_surface = c.TTF_RenderUTF8_Solid(
         font,
         "All your codebase are belong to us.",
@@ -230,7 +246,7 @@ pub fn main() !void {
     };
     defer c.SDL_FreeSurface(font_surface);
 
-    const font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+    var font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
         c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
@@ -242,6 +258,7 @@ pub fn main() !void {
         .x = 0,
         .y = 0,
     };
+
     var player_1 = Paddle{
         .is_human = true,
         .player = Player.player_one,
@@ -324,9 +341,21 @@ pub fn main() !void {
         set_color(renderer, BACKGROUND_COLOR);
         _ = c.SDL_RenderClear(renderer);
 
-        //font_surface = c.TTF_RenderUTF8_Solid(font, "Score:", make_sdl_color(Color.white));
-        // will need to probably create a loop for updating this
+        font_surface = c.TTF_RenderUTF8_Solid(font, "Score:", make_sdl_color(Color.white)) orelse {
+            c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+            return error.SDLInitializationFailed;
+        };
 
+        font_rect = .{
+            .w = font_surface.*.w,
+            .h = font_surface.*.h,
+            .x = 0,
+            .y = 0,
+        };
+        font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+            c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+            return error.SDLInitializationFailed;
+        };
         _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
 
         render(renderer, ball, player_1, player_2);
