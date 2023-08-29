@@ -23,11 +23,46 @@ pub const Paddle = struct {
     width: f32,
     height: f32,
     dy: f32,
+    pdy: f32,
     color: Color,
     score: u32,
     rect: c.SDL_Rect,
     //score_msg: ScoreMessage,
 
+    pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color) Paddle {
+        return Paddle { 
+            .is_human = human,
+            .player = p,
+            .x = x,
+            .y = y,
+            .width = w,
+            .height = h,
+            .dy = 0,
+            .pdy = 0,
+            .color = col,
+            .score = 0,
+            .rect = c.SDL_Rect{
+                .x = @intFromFloat(x),
+                .y = @intFromFloat(y),
+                .w = @intFromFloat(w),
+                .h = @intFromFloat(h),
+            },
+        };
+    }
+    pub fn pause(self: *Paddle) void {
+        self.pdy = self.dy;
+        self.dy = 0;
+    }
+    pub fn unpause(self: *Paddle) void {
+        if (self.pdy != 0) {
+            self.dy = self.pdy;
+        } else {
+            if (!self.is_human) {
+                self.dy = 3;
+            }
+        }
+
+    }
     pub fn reset(self: *Paddle) void {
         self.score = 0;
         self.dy = 0;
@@ -47,10 +82,45 @@ pub const Ball = struct {
     y: f32,
     size: f32,
     dx: f32,
+    pdx: f32,
     dy: f32,
+    pdy: f32,
     color: Color,
     rect: c.SDL_Rect,
 
+    pub fn init(x: f32, y: f32, size: f32, col: Color) Ball {
+        return Ball {
+            .x = x,
+            .y = y,
+            .size = size,
+            .dx = 0,
+            .pdx = 0,
+            .dy = 0,
+            .pdy = 0,
+            .color = col,
+            .rect = c.SDL_Rect{
+                .x = @intFromFloat(x),
+                .y = @intFromFloat(y),
+                .w = @intFromFloat(size),
+                .h = @intFromFloat(size),
+            },
+        };
+    }
+    pub fn pause(self: *Ball) void {
+        self.pdy = self.dy;
+        self.dy = 0;
+        self.pdx = self.dx;
+        self.dx = 0;
+    }
+    pub fn unpause(self: *Ball) void {
+        if (self.pdx != 0) {
+            self.dy = self.pdy;
+            self.dx = self.pdx;
+        }else {
+            self.dy = 2;
+            self.dx = 2;
+        }
+    }
     pub fn reset(self: *Ball) void {
         self.x = WINDOW_WIDTH / 2;
         self.y = WINDOW_HEIGHT / 2;

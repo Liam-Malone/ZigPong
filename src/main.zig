@@ -3,10 +3,6 @@
 // - [x] Add win/loss conditions
 // - [x] Actively update rendered score for each player
 // - [ ] Add win/loss screen (with replay option)
-// - [ ] Improve ball-to-paddle collision:
-//   - stop ball getting stuck in paddle
-//   - collide on top/bottom of paddle
-//    (probably opt for frame prediction on collision checks)
 const std = @import("std");
 const types = @import("types.zig");
 const c = @cImport({
@@ -26,6 +22,7 @@ const BACKGROUND_COLOR = Color.dark_gray;
 const MAX_SCORE = 3;
 const MAX_PLAYER_SPEED = 3;
 const SPEED_INCREASE = 0.5;
+const BALL_SIZE = 8;
 const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
@@ -87,15 +84,16 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     }
 }
 
-fn win(score: u32) void {
+fn win(score: u32, player: Player) void {
     if (score == MAX_SCORE) {
+        winner = player;
         game_over = true;
     }
 }
 
 fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
-    win(player_1.score);
-    win(player_2.score);
+    win(player_1.score, player_1.player);
+    win(player_2.score, player_2.player);
     if (collide_vert_border(player_2)) {
         player_2.dy *= -1;
     }
@@ -103,10 +101,18 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     _ = collide_vert_border(player_1);
 
     if (ball.x + ball.size <= 0) {
-        ball.reset();
         player_1.score += 1;
+        ball.reset();
+        pause = true;
+        ball.pause();
+        player_1.pause();
+        player_2.pause();
     } else if (ball.x > WINDOW_WIDTH) {
         ball.reset();
+        pause = true;
+        player_1.pause();
+        player_2.pause();
+        ball.pause();
         player_2.score += 1;
     }
 
@@ -140,21 +146,10 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
     _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
-//fn render_text(font: *c.TTF_Font, font_surface: *c.SDL_Surface, font_tex: *c.SDL_Texture, renderer: *c.SDL_Renderer) void {
-//    font_surface = c.TTF_RenderUTF8_Solid(font, "Score: ", make_sdl_color(Color.white)) orelse {
-//            c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
-//            return error.SDLInitializationFailed;
-//    };
-//    font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
-//            c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
-//            return error.SDLInitializationFailed;
-//    };
-//}
-
 var quit = false;
-var started = false;
-var pause = false;
+var pause = true;
 var game_over = false;
+var winner: Player = undefined;
 
 pub fn main() !void {
     if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
@@ -225,44 +220,29 @@ pub fn main() !void {
         .y = 0,
     };
 
-    var player_1 = Paddle{
-        .is_human = true,
-        .player = Player.player_one,
-        .x = WINDOW_WIDTH - 60,
-        .y = WINDOW_HEIGHT / 2,
-        .width = PADDLE_WIDTH,
-        .height = PADDLE_HEIGHT,
-        .dy = 0,
-        .color = Color.white,
-        .score = 0,
-        .rect = undefined,
-    };
-    player_1.rect = make_rect(player_1.x, player_1.y, player_1.width, player_1.height);
-
-    var player_2 = Paddle{
-        .is_human = false,
-        .player = Player.player_two,
-        .x = 30,
-        .y = WINDOW_HEIGHT / 2,
-        .width = PADDLE_WIDTH,
-        .height = PADDLE_HEIGHT,
-        .dy = 0,
-        .color = Color.white,
-        .score = 0,
-        .rect = undefined,
-    };
-    player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
-
-    var ball = Ball{
-        .x = WINDOW_WIDTH / 2,
-        .y = WINDOW_HEIGHT / 2,
-        .size = 8,
-        .dx = 0,
-        .dy = 0,
-        .color = Color.white,
-        .rect = undefined,
-    };
-    ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
+    var player_1 = Paddle.init(
+        true, 
+        Player.player_one, 
+        WINDOW_WIDTH - 60, 
+        WINDOW_HEIGHT / 2, 
+        PADDLE_WIDTH, 
+        PADDLE_HEIGHT, 
+        Color.white,
+    );
+    var player_2 = Paddle.init(
+        false, 
+        Player.player_two, 
+        30, 
+        WINDOW_HEIGHT / 2, 
+        PADDLE_WIDTH, 
+        PADDLE_HEIGHT, 
+        Color.white,
+    );
+    var ball = Ball.init(WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        BALL_SIZE,
+        Color.white
+        );
 
     const keyboard = c.SDL_GetKeyboardState(null);
     while (!quit) {
@@ -275,6 +255,15 @@ pub fn main() !void {
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
                         pause = !pause;
+                        if (pause) {
+                            player_1.unpause();
+                            player_2.unpause();
+                            ball.unpause();
+                        }else if (!pause) {
+                            player_1.pause();
+                            player_2.pause();
+                            ball.pause();
+                        }
                         if (game_over) {
                             player_1.reset();
                             player_2.reset();
@@ -296,20 +285,10 @@ pub fn main() !void {
                 if ((player_1.dy * -1) < MAX_PLAYER_SPEED) {
                     player_1.dy += (SPEED_INCREASE * -1);
                 }
-                if (!started) {
-                    started = true;
-                    player_1.dy = -1;
-                    player_2.dy = 3;
-                }
             }
             if (keyboard[c.SDL_SCANCODE_DOWN] != 0) {
                 if (player_1.dy < MAX_PLAYER_SPEED) {
                     player_1.dy += SPEED_INCREASE;
-                }
-                if (!started) {
-                    started = true;
-                    player_1.dy = 1;
-                    player_2.dy = 3;
                 }
             }
 
@@ -337,7 +316,6 @@ pub fn main() !void {
                 return error.SDLInitializationFailed;
             };
 
-            //render_text(font, font_surface, font_tex, renderer);
             _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
 
             render(renderer, ball, player_1, player_2);
@@ -346,20 +324,29 @@ pub fn main() !void {
             c.SDL_Delay(1000 / FPS);
 
             update(&ball, &player_1, &player_2);
-        } else {
+        } 
+        else {
             if (keyboard[c.SDL_SCANCODE_Q] != 0) {
                 ball.reset();
-                player_1.dy = 0;
-                player_2.dy = 0;
+                player_1.reset();
+                player_2.reset();
                 quit = true;
             }
             _ = c.SDL_RenderClear(renderer);
             set_render_color(renderer, make_sdl_color(BACKGROUND_COLOR));
             _ = c.SDL_RenderClear(renderer);
-            font_surface = c.TTF_RenderUTF8_Solid(font, "YOU WIN!!", make_sdl_color(Color.white)) orelse {
-                c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
-                return error.SDLInitializationFailed;
-            };
+            if (winner == Player.player_one) {
+                font_surface = c.TTF_RenderUTF8_Solid(font, "YOU WIN!!", make_sdl_color(Color.white)) orelse {
+                    c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+                    return error.SDLInitializationFailed;
+                };
+            } else {
+                font_surface = c.TTF_RenderUTF8_Solid(font, "YOU LOSE!!", make_sdl_color(Color.white)) orelse {
+                    c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+                    return error.SDLInitializationFailed;
+                };
+            }
+
 
             font_rect = .{
                 .w = font_surface.*.w,
