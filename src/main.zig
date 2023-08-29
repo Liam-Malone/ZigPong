@@ -8,13 +8,16 @@
 //   - collide on top/bottom of paddle
 //    (probably opt for frame prediction on collision checks)
 const std = @import("std");
+const types = @import("types.zig");
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
     @cInclude("SDL2/SDL_ttf.h");
 });
+// syntax simplification
 const overlaps = c.SDL_HasIntersection;
 const allocator = std.heap.page_allocator;
 
+// CONSTANTS
 const FPS = 60;
 const DELTA_TIME_SEC: f32 = 1.0 / @as(f32, FPS);
 const WINDOW_WIDTH = 800;
@@ -27,52 +30,20 @@ const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
 
-const Color = enum(u32) {
-    white = 0xFFFFFFFF,
-    dark_gray = 0xFF181818,
-};
-const Player = enum {
-    player_one,
-    player_two,
-};
-
-const Paddle = struct {
-    is_human: bool,
-    player: Player,
-    x: f32,
-    y: f32,
-    height: f32,
-    width: f32,
-    dy: f32,
-    color: Color,
-    score: u32,
-    rect: c.SDL_Rect,
-};
-const Ball = struct {
-    x: f32,
-    y: f32,
-    size: f32,
-    dx: f32,
-    dy: f32,
-    color: Color,
-    rect: c.SDL_Rect,
-};
-//  ScoreMessage will be used and instantiated for each player
-const ScoreMessage = struct {
-    x: f32,
-    y: f32,
-    font_size: u32,
-    color: Color,
-    rect: c.SDL_Rect,
-    text: *const []u8,
-};
+// Enum types
+const Color = types.Color;
+const Player = types.Player;
+// Structs
+const Paddle = types.Paddle;
+const Ball = types.Ball;
+const ScoreMessage = types.ScoreMessage;
 
 fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
     return c.SDL_Rect{ 
         .x = @intFromFloat(x), 
         .y = @intFromFloat(y), 
         .w = @intFromFloat(w), 
-        .h = @intFromFloat(h) 
+        .h = @intFromFloat(h)
     };
 }
 
@@ -91,13 +62,8 @@ fn make_sdl_color(col: Color) c.SDL_Color {
     };
 }
 
-fn set_color(renderer: *c.SDL_Renderer, col: Color) void {
-    var color = @intFromEnum(col);
-    const r: u8 = @truncate((color >> (0 * 8)) & 0xFF);
-    const g: u8 = @truncate((color >> (1 * 8)) & 0xFF);
-    const b: u8 = @truncate((color >> (2 * 8)) & 0xFF);
-    const a: u8 = @truncate((color >> (3 * 8)) & 0xFF);
-    _ = c.SDL_SetRenderDrawColor(renderer, r, g, b, a);
+fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
+    _ = c.SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
 }
 
 fn collide_vert_border(paddle: *Paddle) bool {
@@ -141,10 +107,10 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     }
 
     if (ball.x + ball.size <= 0) {
-        ball.x = WINDOW_WIDTH / 2;
+        ball.reset();
         player_1.score += 1;
     } else if (ball.x > WINDOW_WIDTH) {
-        ball.x = WINDOW_WIDTH / 2;
+        ball.reset();
         player_2.score += 1;
     }
 
@@ -168,13 +134,13 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
 }
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
-    set_color(renderer, ball.color);
+    set_render_color(renderer, make_sdl_color(ball.color));
     _ = c.SDL_RenderFillRect(renderer, &ball.rect);
 
-    set_color(renderer, player_1.color);
+    set_render_color(renderer, make_sdl_color(player_1.color));
     _ = c.SDL_RenderFillRect(renderer, &player_1.rect);
 
-    set_color(renderer, player_2.color);
+    set_render_color(renderer, make_sdl_color(player_2.color));
     _ = c.SDL_RenderFillRect(renderer, &player_2.rect);
 }
 
@@ -313,6 +279,10 @@ pub fn main() !void {
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
                         pause = !pause;
+                        if (ball.dx == 0) {
+                            ball.dx = 2;
+                            ball.dy = 2;
+                        }
                     },
                     else => {},
                 },
@@ -326,8 +296,6 @@ pub fn main() !void {
             if (!started) {
                 started = true;
                 player_1.dy = -1;
-                ball.dy = 2;
-                ball.dx = 2;
                 player_2.dy = 3;
             }
         }
@@ -338,23 +306,21 @@ pub fn main() !void {
             if (!started) {
                 started = true;
                 player_1.dy = 1;
-                ball.dy = 2;
-                ball.dx = 2;
                 player_2.dy = 3;
             }
         }
 
-        set_color(renderer, BACKGROUND_COLOR);
+        set_render_color(renderer, make_sdl_color(BACKGROUND_COLOR));
         _ = c.SDL_RenderClear(renderer);
 
         var x: []u8 = try std.fmt.allocPrint(allocator, "Score: {d}", .{player_1.score});
-        //  ^ Creates []u8 but font_surface needs [*c]const u8
-        const str: [*c]const u8 = @ptrCast(x);
+        //  ^ Creates []u8 but font_surface needs [*c]const u8 - hence this next line
+        const str: [*c]const u8 = @ptrCast(x); // use of C pointer is necessary here, sadly
         font_surface = c.TTF_RenderUTF8_Solid(font, str, make_sdl_color(Color.white)) orelse {
             c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
             return error.SDLInitializationFailed;
         };
-        allocator.free(x);
+        allocator.free(x); // no unfreed memory pls
 
         font_rect = .{
             .w = font_surface.*.w,
