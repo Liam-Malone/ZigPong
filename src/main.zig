@@ -103,13 +103,13 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     if (ball.x + ball.size <= 0) {
         player_1.score += 1;
         ball.reset();
-        pause = true;
+        paused = true;
         ball.pause();
         player_1.pause();
         player_2.pause();
     } else if (ball.x > WINDOW_WIDTH) {
         ball.reset();
-        pause = true;
+        paused = true;
         player_1.pause();
         player_2.pause();
         ball.pause();
@@ -147,7 +147,7 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
 }
 
 var quit = false;
-var pause = true;
+var paused = true;
 var game_over = false;
 var winner: Player = undefined;
 
@@ -242,7 +242,7 @@ pub fn main() !void {
         WINDOW_HEIGHT,
         BALL_SIZE,
         Color.white
-        );
+    );
 
     const keyboard = c.SDL_GetKeyboardState(null);
     while (!quit) {
@@ -254,12 +254,11 @@ pub fn main() !void {
                 },
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
-                        pause = !pause;
-                        if (pause) {
+                        if (paused) {
                             player_1.unpause();
                             player_2.unpause();
                             ball.unpause();
-                        }else if (!pause) {
+                        }else if (!paused) {
                             player_1.pause();
                             player_2.pause();
                             ball.pause();
@@ -270,10 +269,7 @@ pub fn main() !void {
                             game_over = false;
                             continue;
                         }
-                        if (ball.dx == 0) {
-                            ball.dx = 2;
-                            ball.dy = 2;
-                        }
+                        paused = !paused;
                     },
                     else => {},
                 },
@@ -282,12 +278,12 @@ pub fn main() !void {
         }
         if (!game_over) {
             if (keyboard[c.SDL_SCANCODE_UP] != 0) {
-                if ((player_1.dy * -1) < MAX_PLAYER_SPEED) {
+                if (!paused and (player_1.dy * -1) < MAX_PLAYER_SPEED) {
                     player_1.dy += (SPEED_INCREASE * -1);
                 }
             }
             if (keyboard[c.SDL_SCANCODE_DOWN] != 0) {
-                if (player_1.dy < MAX_PLAYER_SPEED) {
+                if (!paused and player_1.dy < MAX_PLAYER_SPEED) {
                     player_1.dy += SPEED_INCREASE;
                 }
             }
