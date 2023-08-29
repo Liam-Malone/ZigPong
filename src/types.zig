@@ -20,13 +20,27 @@ pub const Paddle = struct {
     player: Player,
     x: f32,
     y: f32,
-    height: f32,
     width: f32,
+    height: f32,
     dy: f32,
     color: Color,
     score: u32,
     rect: c.SDL_Rect,
     //score_msg: ScoreMessage,
+
+    pub fn reset(self: *Paddle) void {
+        self.score = 0;
+        self.dy = 0;
+        self.y = WINDOW_HEIGHT / 2;
+    }
+    pub fn next_rect(self: *Paddle) c.SDL_Rect {
+        return c.SDL_Rect{ 
+            .x = @intFromFloat(self.x), 
+            .y = @intFromFloat(self.y + self.dy), 
+            .w = @intFromFloat(self.width), 
+            .h = @intFromFloat(self.height)
+        };
+    }
 };
 pub const Ball = struct {
     x: f32,
@@ -42,6 +56,14 @@ pub const Ball = struct {
         self.y = WINDOW_HEIGHT / 2;
         self.dx = 0;
         self.dy = 0;
+    }
+    pub fn next_rect(self: *Ball) c.SDL_Rect {
+        return c.SDL_Rect{ 
+            .x = @intFromFloat(self.x + self.dx), 
+            .y = @intFromFloat(self.y + self.dy), 
+            .w = @intFromFloat(self.size), 
+            .h = @intFromFloat(self.size)
+        };
     }
 };
 const ScoreMessage = struct {

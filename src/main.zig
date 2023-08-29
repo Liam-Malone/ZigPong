@@ -102,10 +102,6 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     ball.y += ball.dy;
     _ = collide_vert_border(player_1);
 
-    if (overlaps(&ball.rect, &player_1.rect) != 0) {
-        ball.y = player_1.y - player_1.width / 2 - ball.size - 1.0;
-    }
-
     if (ball.x + ball.size <= 0) {
         ball.reset();
         player_1.score += 1;
@@ -118,10 +114,10 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
         ball.dy *= -1;
     }
 
-    if (overlaps(&ball.rect, &player_1.rect) != 0) {
+    if (overlaps(&ball.next_rect(), &player_1.next_rect()) != 0) {
         paddle_collide(ball, player_1);
     }
-    if (overlaps(&ball.rect, &player_2.rect) != 0) {
+    if (overlaps(&ball.next_rect(), &player_2.next_rect()) != 0) {
         paddle_collide(ball, player_2);
     }
 
@@ -234,8 +230,8 @@ pub fn main() !void {
         .player = Player.player_one,
         .x = WINDOW_WIDTH - 60,
         .y = WINDOW_HEIGHT / 2,
-        .height = PADDLE_HEIGHT,
         .width = PADDLE_WIDTH,
+        .height = PADDLE_HEIGHT,
         .dy = 0,
         .color = Color.white,
         .score = 0,
@@ -248,8 +244,8 @@ pub fn main() !void {
         .player = Player.player_two,
         .x = 30,
         .y = WINDOW_HEIGHT / 2,
-        .height = PADDLE_HEIGHT,
         .width = PADDLE_WIDTH,
+        .height = PADDLE_HEIGHT,
         .dy = 0,
         .color = Color.white,
         .score = 0,
@@ -280,8 +276,8 @@ pub fn main() !void {
                     ' ' => {
                         pause = !pause;
                         if (game_over) {
-                            player_1.score = 0;
-                            player_2.score = 0;
+                            player_1.reset();
+                            player_2.reset();
                             game_over = false;
                             continue;
                         }
