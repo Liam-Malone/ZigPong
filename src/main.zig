@@ -1,6 +1,7 @@
 //TODO:
 // - [ ] Move text rendering to struct
 // - [ ] Maybe add multiplayer
+// - [ ] Add "paused" text when paused
 const std = @import("std");
 const types = @import("types.zig");
 const c = @cImport({
