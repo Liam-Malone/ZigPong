@@ -23,7 +23,7 @@ const DELTA_TIME_SEC: f32 = 1.0 / @as(f32, FPS);
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
 const BACKGROUND_COLOR = Color.dark_gray;
-const MAX_SCORE = 10;
+const MAX_SCORE = 3;
 const MAX_PLAYER_SPEED = 3;
 const SPEED_INCREASE = 0.5;
 const PADDLE_HEIGHT = 60;
@@ -279,6 +279,12 @@ pub fn main() !void {
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
                         pause = !pause;
+                        if (game_over) {
+                            player_1.score = 0;
+                            player_2.score = 0;
+                            game_over = false;
+                            continue;
+                        }
                         if (ball.dx == 0) {
                             ball.dx = 2;
                             ball.dy = 2;
@@ -289,59 +295,92 @@ pub fn main() !void {
                 else => {},
             }
         }
-        if (keyboard[c.SDL_SCANCODE_UP] != 0) {
-            if ((player_1.dy * -1) < MAX_PLAYER_SPEED) {
-                player_1.dy += (SPEED_INCREASE * -1);
+        if (!game_over) {
+            if (keyboard[c.SDL_SCANCODE_UP] != 0) {
+                if ((player_1.dy * -1) < MAX_PLAYER_SPEED) {
+                    player_1.dy += (SPEED_INCREASE * -1);
+                }
+                if (!started) {
+                    started = true;
+                    player_1.dy = -1;
+                    player_2.dy = 3;
+                }
             }
-            if (!started) {
-                started = true;
-                player_1.dy = -1;
-                player_2.dy = 3;
+            if (keyboard[c.SDL_SCANCODE_DOWN] != 0) {
+                if (player_1.dy < MAX_PLAYER_SPEED) {
+                    player_1.dy += SPEED_INCREASE;
+                }
+                if (!started) {
+                    started = true;
+                    player_1.dy = 1;
+                    player_2.dy = 3;
+                }
             }
+
+            set_render_color(renderer, make_sdl_color(BACKGROUND_COLOR));
+            _ = c.SDL_RenderClear(renderer);
+
+            var x: []u8 = try std.fmt.allocPrint(allocator, "Score: {d}", .{player_1.score});
+            //  ^ Creates []u8 but font_surface needs [*c]const u8 - hence this next line
+            const str: [*c]const u8 = @ptrCast(x); // use of C pointer is necessary here, sadly
+            font_surface = c.TTF_RenderUTF8_Solid(font, str, make_sdl_color(Color.white)) orelse {
+                c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+                return error.SDLInitializationFailed;
+            };
+            allocator.free(x); // no unfreed memory pls
+
+            font_rect = .{
+                .w = font_surface.*.w,
+                .h = font_surface.*.h,
+                .x = 60,
+                .y = 20,
+            };
+
+            font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+                c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+                return error.SDLInitializationFailed;
+            };
+
+            //render_text(font, font_surface, font_tex, renderer);
+            _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
+
+            render(renderer, ball, player_1, player_2);
+
+            c.SDL_RenderPresent(renderer);
+            c.SDL_Delay(1000 / FPS);
+
+            update(&ball, &player_1, &player_2);
+        } else {
+            if (keyboard[c.SDL_SCANCODE_Q] != 0) {
+                ball.reset();
+                player_1.dy = 0;
+                player_2.dy = 0;
+                quit = true;
+            }
+            _ = c.SDL_RenderClear(renderer);
+            set_render_color(renderer, make_sdl_color(BACKGROUND_COLOR));
+            _ = c.SDL_RenderClear(renderer);
+            font_surface = c.TTF_RenderUTF8_Solid(font, "YOU WIN!!", make_sdl_color(Color.white)) orelse {
+                c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+                return error.SDLInitializationFailed;
+            };
+
+            font_rect = .{
+                .w = font_surface.*.w,
+                .h = font_surface.*.h,
+                .x = WINDOW_WIDTH / 2 - 50,
+                .y = WINDOW_HEIGHT / 2,
+            };
+
+            font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+                c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+                return error.SDLInitializationFailed;
+            };
+
+            _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
+
+            c.SDL_RenderPresent(renderer);
+            c.SDL_Delay(1000 / FPS);
         }
-        if (keyboard[c.SDL_SCANCODE_DOWN] != 0) {
-            if (player_1.dy < MAX_PLAYER_SPEED) {
-                player_1.dy += SPEED_INCREASE;
-            }
-            if (!started) {
-                started = true;
-                player_1.dy = 1;
-                player_2.dy = 3;
-            }
-        }
-
-        set_render_color(renderer, make_sdl_color(BACKGROUND_COLOR));
-        _ = c.SDL_RenderClear(renderer);
-
-        var x: []u8 = try std.fmt.allocPrint(allocator, "Score: {d}", .{player_1.score});
-        //  ^ Creates []u8 but font_surface needs [*c]const u8 - hence this next line
-        const str: [*c]const u8 = @ptrCast(x); // use of C pointer is necessary here, sadly
-        font_surface = c.TTF_RenderUTF8_Solid(font, str, make_sdl_color(Color.white)) orelse {
-            c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
-            return error.SDLInitializationFailed;
-        };
-        allocator.free(x); // no unfreed memory pls
-
-        font_rect = .{
-            .w = font_surface.*.w,
-            .h = font_surface.*.h,
-            .x = 60,
-            .y = 20,
-        };
-
-        font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
-            c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
-            return error.SDLInitializationFailed;
-        };
-
-        //render_text(font, font_surface, font_tex, renderer);
-        _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
-
-        render(renderer, ball, player_1, player_2);
-
-        c.SDL_RenderPresent(renderer);
-        c.SDL_Delay(1000 / FPS);
-
-        update(&ball, &player_1, &player_2);
     }
 }
