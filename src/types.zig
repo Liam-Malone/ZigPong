@@ -68,6 +68,15 @@ pub const Paddle = struct {
         self.dy = 0;
         self.y = WINDOW_HEIGHT / 2;
     }
+    pub fn current_rect(self: *Paddle) c.SDL_Rect {
+        return c.SDL_Rect{ 
+            .x = @intFromFloat(self.x), 
+            .y = @intFromFloat(self.y), 
+            .w = @intFromFloat(self.width), 
+            .h = @intFromFloat(self.height)
+        };
+
+    }
     pub fn next_rect(self: *Paddle) c.SDL_Rect {
         return c.SDL_Rect{ 
             .x = @intFromFloat(self.x), 
@@ -126,6 +135,15 @@ pub const Ball = struct {
         self.y = WINDOW_HEIGHT / 2;
         self.dx = 0;
         self.dy = 0;
+    }
+    pub fn current_rect(self: *Ball) c.SDL_Rect {
+        return c.SDL_Rect{ 
+            .x = @intFromFloat(self.x), 
+            .y = @intFromFloat(self.y), 
+            .w = @intFromFloat(self.size), 
+            .h = @intFromFloat(self.size)
+        };
+
     }
     pub fn next_rect(self: *Ball) c.SDL_Rect {
         return c.SDL_Rect{ 

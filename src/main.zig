@@ -1,8 +1,6 @@
 //TODO:
-// - [x] Add text rendering
-// - [x] Add win/loss conditions
-// - [x] Actively update rendered score for each player
-// - [ ] Add win/loss screen (with replay option)
+// - [ ] Move text rendering to struct
+// - [ ] Maybe add multiplayer
 const std = @import("std");
 const types = @import("types.zig");
 const c = @cImport({
@@ -35,14 +33,6 @@ const Paddle = types.Paddle;
 const Ball = types.Ball;
 const ScoreMessage = types.ScoreMessage;
 
-fn make_rect(x: f32, y: f32, w: f32, h: f32) c.SDL_Rect {
-    return c.SDL_Rect{ 
-        .x = @intFromFloat(x), 
-        .y = @intFromFloat(y), 
-        .w = @intFromFloat(w), 
-        .h = @intFromFloat(h)
-    };
-}
 
 fn make_sdl_color(col: Color) c.SDL_Color {
     var color = @intFromEnum(col);
@@ -130,9 +120,9 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     ball.x += ball.dx;
     player_1.y += player_1.dy;
     player_2.y += player_2.dy;
-    ball.rect = make_rect(ball.x, ball.y, ball.size, ball.size);
-    player_1.rect = make_rect(player_1.x, player_1.y, player_1.width, player_1.height);
-    player_2.rect = make_rect(player_2.x, player_2.y, player_2.width, player_2.height);
+    ball.rect = ball.current_rect();
+    player_1.rect = player_1.current_rect();
+    player_2.rect = player_2.current_rect();
 }
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
