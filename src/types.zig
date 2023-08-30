@@ -3,9 +3,6 @@ const c = @cImport({
     @cInclude("SDL2/SDL_ttf.h");
 });
 
-const WINDOW_WIDTH = 800;
-const WINDOW_HEIGHT = 600;
-
 pub const Color = enum(u32) {
     white = 0xFFFFFFFF,
     dark_gray = 0xFF181818,
@@ -20,6 +17,7 @@ pub const Paddle = struct {
     player: Player,
     x: f32,
     y: f32,
+    starty: f32,
     width: f32,
     height: f32,
     dy: f32,
@@ -35,6 +33,7 @@ pub const Paddle = struct {
             .player = p,
             .x = x,
             .y = y,
+            .starty = y,
             .width = w,
             .height = h,
             .dy = 0,
@@ -66,7 +65,7 @@ pub const Paddle = struct {
     pub fn reset(self: *Paddle) void {
         self.score = 0;
         self.dy = 0;
-        self.y = WINDOW_HEIGHT / 2;
+        self.y = self.starty;
     }
     pub fn current_rect(self: *Paddle) c.SDL_Rect {
         return c.SDL_Rect{ 
@@ -88,7 +87,9 @@ pub const Paddle = struct {
 };
 pub const Ball = struct {
     x: f32,
+    startx: f32,
     y: f32,
+    starty: f32,
     size: f32,
     dx: f32,
     pdx: f32,
@@ -100,7 +101,9 @@ pub const Ball = struct {
     pub fn init(x: f32, y: f32, size: f32, col: Color) Ball {
         return Ball {
             .x = x,
+            .startx = x,
             .y = y,
+            .starty = y,
             .size = size,
             .dx = 0,
             .pdx = 0,
@@ -131,8 +134,8 @@ pub const Ball = struct {
         }
     }
     pub fn reset(self: *Ball) void {
-        self.x = WINDOW_WIDTH / 2;
-        self.y = WINDOW_HEIGHT / 2;
+        self.x = self.startx;
+        self.y = self.starty;
         self.dx = 0;
         self.dy = 0;
     }
@@ -163,7 +166,18 @@ const ScoreMessage = struct {
     tex: *c.SDL_Texture,
     msg: [*c]const u8,
 
-    fn render(self: *ScoreMessage, renderer: *c.SDL_Renderer) void {
+    pub fn init(x: f32, y: f32, font_size: u32, color: Color, surface: *c.SDL_Surface, tex: *c.SDL_Texture, msg: [*c]const u8) ScoreMessage {
+        return ScoreMessage {
+            .x = x,
+            .y = y,
+            .font_size = font_size, 
+            .color = color,
+            .surface = surface,
+            .tex = tex,
+            .msg = msg,
+        };
+    }
+    pub fn render(self: *ScoreMessage, renderer: *c.SDL_Renderer) void {
         // todo: shift text rendering loop to here
         _ = self;
         _ = renderer;

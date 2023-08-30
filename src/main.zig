@@ -229,8 +229,9 @@ pub fn main() !void {
         PADDLE_HEIGHT, 
         Color.white,
     );
-    var ball = Ball.init(WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+    var ball = Ball.init(
+        WINDOW_WIDTH / 2,
+        WINDOW_HEIGHT / 2,
         BALL_SIZE,
         Color.white
     );
