@@ -5,7 +5,6 @@ const c = @cImport({
 });
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
 const PIXEL_BUFFER = 1;
-const RndGen = std.rand.DefaultPrng;
 
 pub const Color = enum(u32) {
     white = 0xFFFFFFFF,
@@ -92,6 +91,10 @@ pub const Paddle = struct {
         self.dy = 0;
         self.y = self.starty;
     }
+    pub fn update(self: *Paddle) void {
+        self.y += self.dy;
+        self.rect = self.current_rect();
+    }
 
     pub fn current_rect(self: *Paddle) c.SDL_Rect {
         return c.SDL_Rect{ 
@@ -167,6 +170,12 @@ pub const Ball = struct {
         self.y = self.starty;
         self.dx = 0;
         self.dy = 0;
+    }
+
+    pub fn update(self: *Ball) void {
+        self.x += self.dx;
+        self.y += self.dy;
+        self.rect = self.current_rect();
     }
 
     pub fn current_rect(self: *Ball) c.SDL_Rect {
@@ -358,9 +367,6 @@ fn start_moving() !f32 {
         break :blk seed;
     });
     var speed = prng.random().intRangeAtMost(i32, 0, 1);
-    //var rnd = RndGen.init(0);
-    //var speed: i32 = @intCast(@mod(rnd.random(),2));
-    std.debug.print("num is: {d}\n", .{speed});
     if (speed == 0) {
         return -2;
     }

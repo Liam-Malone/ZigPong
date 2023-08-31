@@ -1,12 +1,8 @@
 //TODO:
-// - [x] Move text rendering to struct
-// - [x] Move Window render to struct
-// - [x] Select when to show pause screen
-// - [ ] Tidy up more
+// - [x] Actually randomize ball path to some degree
 // - [ ] Improve collision (vertical, sticking)
-// - [ ] Actually randomize ball path
 // - [ ] Maybe add multiplayer
-// - [ ] Add music (maybe sin wave?)
+// - [ ] *MAYBE* Add music (maybe sin wave?)
 const std = @import("std");
 const lib = @import("lib.zig");
 const c = @cImport({
@@ -45,26 +41,29 @@ fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
     _ = c.SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
 }
 
-fn collide_vert_border(paddle: *Paddle) bool {
+fn collide_vert_border(paddle: *Paddle) void {
     if ((paddle.y + paddle.dy >= WINDOW_HEIGHT - paddle.height and paddle.dy > 0) or (paddle.y + paddle.dy <= 0 and paddle.dy < 0)) {
-        if (paddle.is_human) {
-            paddle.dy = 0;
+        switch (paddle.is_human) {
+            true => paddle.dy = 0,
+            false => paddle.dy *= -1,
         }
-        return true;
+        return;
     }
-    return false;
 }
 
 fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
+    //TODO: 
+    // - [ ] generally improve and flesh out
+    // - [ ] account for top/bottom collision
     switch (paddle.player) {
         Player.player_one => {
             ball.dx *= -1;
-            ball.dy += paddle.dy*0.5; 
         },
         Player.player_two => {
             ball.dx *= -1;
         },
     }
+    ball.dy += paddle.dy*0.5; 
 }
 
 fn win(score: i32, player: Player) void {
@@ -90,11 +89,9 @@ fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
 fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     win(player_1.score, player_1.player);
     win(player_2.score, player_2.player);
-    if (collide_vert_border(player_2)) {
-        player_2.dy *= -1;
-    }
-    ball.y += ball.dy;
-    _ = collide_vert_border(player_1);
+
+    collide_vert_border(player_2);
+    collide_vert_border(player_1);
 
     if (ball.x + ball.size <= 0) {
         try player_1.update_score(1);
@@ -121,12 +118,9 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
         paddle_collide(ball, player_2);
     }
 
-    ball.x += ball.dx;
-    player_1.y += player_1.dy;
-    player_2.y += player_2.dy;
-    ball.rect = ball.current_rect();
-    player_1.rect = player_1.current_rect();
-    player_2.rect = player_2.current_rect();
+    ball.update();
+    player_1.update();
+    player_2.update();
 }
 
 fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Paddle) void {
