@@ -1,9 +1,10 @@
 //TODO:
 // - [x] Move text rendering to struct
-// - [x] Add "paused" text when paused
-// - [ ] Maybe add multiplayer
+// - [ ] Move Window render to struct (?)
 // - [ ] Tidy up more
 // - [ ] Improve collision (vertical, sticking)
+// - [ ] Maybe add multiplayer
+// - [ ] Add music (maybe sin wave?)
 const std = @import("std");
 const lib = @import("lib.zig");
 const c = @cImport({
