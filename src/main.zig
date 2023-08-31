@@ -38,6 +38,7 @@ const Player = lib.Player;
 const Paddle = lib.Paddle;
 const Ball = lib.Ball;
 const ScreenText = lib.ScreenText;
+const Window = lib.Window;
 
 
 fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
@@ -72,6 +73,19 @@ fn win(score: i32, player: Player) void {
     }
 }
 
+fn pause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
+    ball.pause();
+    player_1.pause();
+    player_2.pause();
+    paused = true;
+}
+fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
+    ball.unpause();
+    player_1.unpause();
+    player_2.unpause();
+    paused = false;
+}
+
 fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     win(player_1.score, player_1.player);
     win(player_2.score, player_2.player);
@@ -83,19 +97,15 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
 
     if (ball.x + ball.size <= 0) {
         try player_1.update_score(1);
+        scored = true;
         ball.reset();
-        ball.pause();
-        player_1.pause();
-        player_2.pause();
-        paused = true;
+        pause(ball, player_1, player_2);
         return;
     } else if (ball.x > WINDOW_WIDTH) {
         try player_2.update_score(1);
+        scored = true;
         ball.reset();
-        player_1.pause();
-        player_2.pause();
-        ball.pause();
-        paused = true;
+        pause(ball, player_1, player_2);
         return;
     }
 
@@ -131,32 +141,13 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
 
 var quit = false;
 var paused = true;
+var scored = false;
 var game_over = false;
 var winner: Player = undefined;
 
 pub fn main() !void {
-    if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    }
-    defer c.SDL_Quit();
-
-    if (c.TTF_Init() < 0) {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-    }
-    defer c.TTF_Quit();
-
-    const window = c.SDL_CreateWindow("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0) orelse {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    };
-    defer c.SDL_DestroyWindow(window);
-
-    const renderer = c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED) orelse {
-        c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
-        return error.SDLInitializationFailed;
-    };
-    defer c.SDL_DestroyRenderer(renderer);
+    var window = try Window.init("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    defer window.deinit();
 
     var other_text: ScreenText = try ScreenText.init(
         WINDOW_WIDTH / 2 - 80, 
@@ -164,7 +155,7 @@ pub fn main() !void {
         30, 
         Color.white, 
         "ALT Text", 
-        renderer
+        window.renderer
     );
     defer other_text.deinit();
 
@@ -174,7 +165,7 @@ pub fn main() !void {
         30,
         Color.white,
         "P1 Score: 0",
-        renderer,
+        window.renderer,
     );
     defer p1_score_msg.deinit();
 
@@ -184,7 +175,7 @@ pub fn main() !void {
         30,
         Color.white,
         "P2 Score: 0",
-        renderer,
+        window.renderer,
     );
     defer p2_score_msg.deinit();
 
@@ -224,13 +215,9 @@ pub fn main() !void {
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
                         if (paused) {
-                            player_1.unpause();
-                            player_2.unpause();
-                            ball.unpause();
+                            unpause(&ball, &player_1, &player_2);
                         }else if (!paused) {
-                            player_1.pause();
-                            player_2.pause();
-                            ball.pause();
+                            pause(&ball, &player_1, &player_2);
                         }
                         if (game_over) {
                             player_1.reset();
@@ -238,7 +225,8 @@ pub fn main() !void {
                             game_over = false;
                             continue;
                         }
-                        paused = !paused;
+                        if (scored) { scored = false; }
+                        //paused = !paused;
                     },
                     'q' => {
                         if (paused or game_over){
@@ -265,19 +253,19 @@ pub fn main() !void {
                 }
             }
 
-            set_render_color(renderer, Color.make_sdl_color(BACKGROUND_COLOR));
-            _ = c.SDL_RenderClear(renderer);
-            if (paused) {
-                try other_text.render(renderer, "GAME PAUSED");
+            set_render_color(window.renderer, Color.make_sdl_color(BACKGROUND_COLOR));
+            _ = c.SDL_RenderClear(window.renderer);
+            if (paused and !scored) {
+                try other_text.render(window.renderer, "GAME PAUSED");
             }
 
             // update player scores
-            try p1_score_msg.update(renderer, allocator, @intFromEnum(player_1.player), player_1.score);
-            try p2_score_msg.update(renderer, allocator, @intFromEnum(player_2.player), player_2.score);
+            try p1_score_msg.update(window.renderer, allocator, @intFromEnum(player_1.player), player_1.score);
+            try p2_score_msg.update(window.renderer, allocator, @intFromEnum(player_2.player), player_2.score);
 
-            render(renderer, ball, player_1, player_2);
+            render(window.renderer, ball, player_1, player_2);
 
-            c.SDL_RenderPresent(renderer);
+            c.SDL_RenderPresent(window.renderer);
             c.SDL_Delay(1000 / FPS);
 
             try update(&ball, &player_1, &player_2);
@@ -289,15 +277,15 @@ pub fn main() !void {
                 player_2.reset();
                 quit = true;
             }
-            _ = c.SDL_RenderClear(renderer);
-            set_render_color(renderer, Color.make_sdl_color(BACKGROUND_COLOR));
-            _ = c.SDL_RenderClear(renderer);
+            _ = c.SDL_RenderClear(window.renderer);
+            set_render_color(window.renderer, Color.make_sdl_color(BACKGROUND_COLOR));
+            _ = c.SDL_RenderClear(window.renderer);
             if (winner == Player.player_one) {
-                try other_text.render(renderer, "YOU WIN!!!");
+                try other_text.render(window.renderer, "YOU WIN!!!");
             } else {
-                try other_text.render(renderer, "YOU LOSE!!!");
+                try other_text.render(window.renderer, "YOU LOSE!!!");
             }
-            c.SDL_RenderPresent(renderer);
+            c.SDL_RenderPresent(window.renderer);
             c.SDL_Delay(1000 / FPS);
         }
     }
