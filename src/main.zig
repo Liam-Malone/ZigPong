@@ -1,7 +1,7 @@
 //TODO:
 // - [x] Move text rendering to struct
-// - [ ] Move Window render to struct (?)
-// - [ ] Select when to show pause screen
+// - [x] Move Window render to struct
+// - [x] Select when to show pause screen
 // - [ ] Tidy up more
 // - [ ] Improve collision (vertical, sticking)
 // - [ ] Actually randomize ball path
@@ -97,13 +97,13 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
 
     if (ball.x + ball.size <= 0) {
         try player_1.update_score(1);
-        scored = true;
+        started = false;
         ball.reset();
         pause(ball, player_1, player_2);
         return;
     } else if (ball.x > WINDOW_WIDTH) {
         try player_2.update_score(1);
-        scored = true;
+        started = false;
         ball.reset();
         pause(ball, player_1, player_2);
         return;
@@ -141,7 +141,7 @@ fn render(renderer: *c.SDL_Renderer, ball: Ball, player_1: Paddle, player_2: Pad
 
 var quit = false;
 var paused = true;
-var scored = false;
+var started = false;
 var game_over = false;
 var winner: Player = undefined;
 
@@ -150,7 +150,7 @@ pub fn main() !void {
     defer window.deinit();
 
     var other_text: ScreenText = try ScreenText.init(
-        WINDOW_WIDTH / 2 - 80, 
+        WINDOW_WIDTH / 2 - 100, 
         WINDOW_HEIGHT/2, 
         30, 
         Color.white, 
@@ -214,19 +214,18 @@ pub fn main() !void {
                 },
                 c.SDL_KEYDOWN => switch (event.key.keysym.sym) {
                     ' ' => {
-                        if (paused) {
-                            unpause(&ball, &player_1, &player_2);
-                        }else if (!paused) {
-                            pause(&ball, &player_1, &player_2);
-                        }
                         if (game_over) {
                             player_1.reset();
                             player_2.reset();
                             game_over = false;
                             continue;
                         }
-                        if (scored) { scored = false; }
-                        //paused = !paused;
+                        if (!started) { started = true; }
+                        if (paused) {
+                            unpause(&ball, &player_1, &player_2);
+                        }else if (!paused) {
+                            pause(&ball, &player_1, &player_2);
+                        }
                     },
                     'q' => {
                         if (paused or game_over){
@@ -255,7 +254,7 @@ pub fn main() !void {
 
             set_render_color(window.renderer, Color.make_sdl_color(BACKGROUND_COLOR));
             _ = c.SDL_RenderClear(window.renderer);
-            if (paused and !scored) {
+            if (paused and started) {
                 try other_text.render(window.renderer, "GAME PAUSED");
             }
 
@@ -271,6 +270,7 @@ pub fn main() !void {
             try update(&ball, &player_1, &player_2);
         } 
         else {
+            started = false;
             if (keyboard[c.SDL_SCANCODE_Q] != 0) {
                 ball.reset();
                 player_1.reset();
@@ -281,9 +281,9 @@ pub fn main() !void {
             set_render_color(window.renderer, Color.make_sdl_color(BACKGROUND_COLOR));
             _ = c.SDL_RenderClear(window.renderer);
             if (winner == Player.player_one) {
-                try other_text.render(window.renderer, "YOU WIN!!!");
+                try other_text.render(window.renderer, "PLAYER 1 WINS!!!");
             } else {
-                try other_text.render(window.renderer, "YOU LOSE!!!");
+                try other_text.render(window.renderer, "PLAYER 2 WINS!!!");
             }
             c.SDL_RenderPresent(window.renderer);
             c.SDL_Delay(1000 / FPS);
