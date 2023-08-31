@@ -5,6 +5,7 @@ const c = @cImport({
 });
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
 const PIXEL_BUFFER = 1;
+const RndGen = std.rand.DefaultPrng;
 
 pub const Color = enum(u32) {
     white = 0xFFFFFFFF,
@@ -152,16 +153,15 @@ pub const Ball = struct {
         self.dx = 0;
     }
 
-    pub fn unpause(self: *Ball) void {
+    pub fn unpause(self: *Ball) !void {
         if (self.pdx != 0) {
             self.dy = self.pdy;
             self.dx = self.pdx;
         }else {
-            self.dy = 2;
-            self.dx = 2;
+            self.dy = try start_moving();
+            self.dx = try start_moving();
         }
     }
-
     pub fn reset(self: *Ball) void {
         self.x = self.startx;
         self.y = self.starty;
@@ -196,6 +196,7 @@ pub const Ball = struct {
         };
     }
 };
+
 pub const ScreenText = struct {
     x: f32,
     y: f32,
@@ -349,3 +350,19 @@ pub const Window = struct {
         defer c.SDL_DestroyRenderer(self.renderer);
     }
 };
+
+fn start_moving() !f32 {
+    var prng = std.rand.DefaultPrng.init(blk: {
+        var seed: u64 = undefined;
+        try std.os.getrandom(std.mem.asBytes(&seed));
+        break :blk seed;
+    });
+    var speed = prng.random().intRangeAtMost(i32, 0, 1);
+    //var rnd = RndGen.init(0);
+    //var speed: i32 = @intCast(@mod(rnd.random(),2));
+    std.debug.print("num is: {d}\n", .{speed});
+    if (speed == 0) {
+        return -2;
+    }
+    return 2;
+}

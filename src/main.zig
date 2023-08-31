@@ -13,9 +13,19 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
     @cInclude("SDL2/SDL_ttf.h");
 });
-// syntax simplification
+// syntax simplification for using imports
 const overlaps = c.SDL_HasIntersection;
 const allocator = std.heap.page_allocator;
+
+// Enum types
+const Color = lib.Color;
+const Player = lib.Player;
+// Structs
+const Paddle = lib.Paddle;
+const Ball = lib.Ball;
+const ScreenText = lib.ScreenText;
+const Window = lib.Window;
+
 
 // CONSTANTS
 const FPS = 60;
@@ -30,16 +40,6 @@ const BALL_SIZE = 8;
 const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
-
-// Enum types
-const Color = lib.Color;
-const Player = lib.Player;
-// Structs
-const Paddle = lib.Paddle;
-const Ball = lib.Ball;
-const ScreenText = lib.ScreenText;
-const Window = lib.Window;
-
 
 fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
     _ = c.SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
@@ -59,6 +59,7 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     switch (paddle.player) {
         Player.player_one => {
             ball.dx *= -1;
+            ball.dy += paddle.dy*0.5; 
         },
         Player.player_two => {
             ball.dx *= -1;
@@ -79,8 +80,8 @@ fn pause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     player_2.pause();
     paused = true;
 }
-fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
-    ball.unpause();
+fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
+    try ball.unpause();
     player_1.unpause();
     player_2.unpause();
     paused = false;
@@ -222,7 +223,7 @@ pub fn main() !void {
                         }
                         if (!started) { started = true; }
                         if (paused) {
-                            unpause(&ball, &player_1, &player_2);
+                            try unpause(&ball, &player_1, &player_2);
                         }else if (!paused) {
                             pause(&ball, &player_1, &player_2);
                         }
