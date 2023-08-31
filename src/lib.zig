@@ -8,6 +8,8 @@ const PIXEL_BUFFER = 1;
 
 pub const Color = enum(u32) {
     white = 0xFFFFFFFF,
+    purple = 0x7BF967AA,
+    red = 0xFC1A17CC,
     dark_gray = 0xFF181818,
 
     pub fn make_sdl_color(col: Color) c.SDL_Color {

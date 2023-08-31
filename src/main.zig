@@ -158,7 +158,7 @@ pub fn main() !void {
         80,
         20,
         30,
-        Color.white,
+        Color.purple,
         "P1 Score: 0",
         window.renderer,
     );
@@ -168,7 +168,7 @@ pub fn main() !void {
         80,
         60,
         30,
-        Color.white,
+        Color.red,
         "P2 Score: 0",
         window.renderer,
     );
@@ -181,7 +181,7 @@ pub fn main() !void {
         WINDOW_HEIGHT / 2, 
         PADDLE_WIDTH, 
         PADDLE_HEIGHT, 
-        Color.white,
+        Color.purple,
     );
     var player_2 = Paddle.init(
         false, 
@@ -190,7 +190,7 @@ pub fn main() !void {
         WINDOW_HEIGHT / 2, 
         PADDLE_WIDTH, 
         PADDLE_HEIGHT, 
-        Color.white,
+        Color.red,
     );
     var ball = Ball.init(
         WINDOW_WIDTH / 2,
