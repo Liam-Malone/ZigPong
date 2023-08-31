@@ -1,8 +1,10 @@
 //TODO:
 // - [x] Move text rendering to struct
 // - [ ] Move Window render to struct (?)
+// - [ ] Select when to show pause screen
 // - [ ] Tidy up more
 // - [ ] Improve collision (vertical, sticking)
+// - [ ] Actually randomize ball path
 // - [ ] Maybe add multiplayer
 // - [ ] Add music (maybe sin wave?)
 const std = @import("std");
