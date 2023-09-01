@@ -1,8 +1,10 @@
 //TODO:
 // - [x] Actually randomize ball path to some degree
-// - [ ] Improve collision (vertical, sticking)
+// - [x] Improve collision (vertical, sticking)
+// - [x] Have AI Paddle follow ball path
+// - [ ] Edit build script for cross-compiling
 // - [ ] Maybe add multiplayer
-// - [ ] *MAYBE* Add music (maybe sin wave?)
+// - [ ] *MAYBE* Add music (sin wave or something)
 const std = @import("std");
 const lib = @import("lib.zig");
 const c = @cImport({
@@ -44,17 +46,13 @@ fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
 fn collide_vert_border(paddle: *Paddle) void {
     if ((paddle.y + paddle.dy >= WINDOW_HEIGHT - paddle.height and paddle.dy > 0) or (paddle.y + paddle.dy <= 0 and paddle.dy < 0)) {
         paddle.dy = 0;
-        //switch (paddle.is_human) {
-        //    false => paddle.dy = ,
-        //}
         return;
     }
 }
 
 fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     //TODO: 
-    // - [ ] generally improve and flesh out
-    // - [ ] account for top/bottom collision
+    // - [ ] minor improvements
     switch (paddle.player) {
         Player.player_one => {
             if (ball.x + ball.size > paddle.x){
