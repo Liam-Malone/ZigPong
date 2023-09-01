@@ -43,10 +43,10 @@ fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
 
 fn collide_vert_border(paddle: *Paddle) void {
     if ((paddle.y + paddle.dy >= WINDOW_HEIGHT - paddle.height and paddle.dy > 0) or (paddle.y + paddle.dy <= 0 and paddle.dy < 0)) {
-        switch (paddle.is_human) {
-            true => paddle.dy = 0,
-            false => paddle.dy *= -1,
-        }
+        paddle.dy = 0;
+        //switch (paddle.is_human) {
+        //    false => paddle.dy = ,
+        //}
         return;
     }
 }
@@ -97,10 +97,13 @@ fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     paused = false;
 }
 
-fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
+fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle, window: Window) !void {
     win(player_1.score, player_1.player);
     win(player_2.score, player_2.player);
 
+    if (!player_2.is_human) {
+        player_2.move_to_ball(ball.*, window);
+    }
     collide_vert_border(player_2);
     collide_vert_border(player_1);
 
@@ -273,7 +276,7 @@ pub fn main() !void {
             c.SDL_RenderPresent(window.renderer);
             c.SDL_Delay(1000 / FPS);
 
-            try update(&ball, &player_1, &player_2);
+            try update(&ball, &player_1, &player_2, window);
         } 
         else {
             started = false;

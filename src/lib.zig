@@ -116,6 +116,15 @@ pub const Paddle = struct {
             .h = @intFromFloat(self.height)
         };
     }
+    
+    pub fn move_to_ball(self: *Paddle, ball: Ball, window: Window) void {
+        const diff = (ball.y-self.y)*0.2;
+        if (ball.is_playable and 
+            self.y+self.height+diff < @as(f32, @floatFromInt(window.height)) and
+            self.y+diff >= 0){
+            self.dy = (ball.y-self.y)*0.2;
+        }
+    }
 };
 pub const Ball = struct {
     x: f32,
@@ -127,6 +136,7 @@ pub const Ball = struct {
     pdx: f32,
     dy: f32,
     pdy: f32,
+    is_playable: bool,
     color: Color,
     rect: c.SDL_Rect,
 
@@ -141,6 +151,7 @@ pub const Ball = struct {
             .pdx = 0,
             .dy = 0,
             .pdy = 0,
+            .is_playable = false,
             .color = col,
             .rect = c.SDL_Rect{
                 .x = @intFromFloat(x),
@@ -156,6 +167,7 @@ pub const Ball = struct {
         self.dy = 0;
         self.pdx = self.dx;
         self.dx = 0;
+        self.is_playable = false;
     }
 
     pub fn unpause(self: *Ball) !void {
@@ -166,6 +178,7 @@ pub const Ball = struct {
             self.dy = try start_moving();
             self.dx = try start_moving();
         }
+        self.is_playable = true;
     }
     pub fn reset(self: *Ball) void {
         self.x = self.startx;
@@ -328,6 +341,8 @@ pub const ScreenText = struct {
 pub const Window = struct {
     window: *c.SDL_Window,
     renderer: *c.SDL_Renderer,
+    width: u32,
+    height: u32,
 
     pub fn init(name: []const u8, xpos: u8, ypos: u8, width: u32, height: u32) !Window {
 
@@ -351,6 +366,8 @@ pub const Window = struct {
         return Window {
             .window = window,
             .renderer = renderer,
+            .width = width,
+            .height = height,
         };
     }
 
