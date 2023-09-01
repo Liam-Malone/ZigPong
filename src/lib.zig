@@ -43,11 +43,12 @@ pub const Paddle = struct {
     dy: f32,
     pdy: f32,
     color: Color,
+    max_speed: f32,
     score: i32,
     rect: c.SDL_Rect,
     //score_msg: *ScreenText,
 
-    pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color) Paddle {
+    pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color, max_speed: f32) Paddle {
         return Paddle { 
             .is_human = human,
             .player = p,
@@ -59,6 +60,7 @@ pub const Paddle = struct {
             .dy = 0,
             .pdy = 0,
             .color = col,
+            .max_speed = max_speed,
             .score = 0,
             .rect = c.SDL_Rect{
                 .x = @intFromFloat(x),
@@ -93,6 +95,10 @@ pub const Paddle = struct {
         self.dy = 0;
         self.y = self.starty;
     }
+    pub fn reset_pos(self:*Paddle) void {
+        self.dy = 0;
+        self.y = self.starty;
+    }
     pub fn update(self: *Paddle) void {
         self.y += self.dy;
         self.rect = self.current_rect();
@@ -119,10 +125,18 @@ pub const Paddle = struct {
     
     pub fn move_to_ball(self: *Paddle, ball: Ball, window: Window) void {
         const diff = (ball.y-self.y)*0.2;
-        if (ball.is_playable and 
+        if (ball.is_playable and
             self.y+self.height+diff < @as(f32, @floatFromInt(window.height)) and
             self.y+diff >= 0){
-            self.dy = (ball.y-self.y)*0.2;
+
+            if (abs(diff) < self.max_speed) {
+                self.dy = diff;
+            } else {
+                switch(diff > 0) {
+                    true => self.dy = self.max_speed,
+                    false => self.dy = (self.max_speed * -1),
+                }
+            }
         }
     }
 };
@@ -390,4 +404,10 @@ fn start_moving() !f32 {
         return -2;
     }
     return 2;
+}
+fn abs(num: f32) f32 {
+    switch (num > 0) {
+        true => return num,
+        false => return (num * -1),
+    }
 }

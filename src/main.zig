@@ -30,7 +30,7 @@ const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
 const BACKGROUND_COLOR = Color.dark_gray;
 const MAX_SCORE = 3;
-const MAX_PLAYER_SPEED = 3;
+const MAX_PLAYER_SPEED = 4;
 const SPEED_INCREASE = 0.5;
 const BALL_SIZE = 8;
 const PADDLE_HEIGHT = 60;
@@ -111,12 +111,16 @@ fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle, window: Window) !vo
         try player_1.update_score(1);
         started = false;
         ball.reset();
+        player_1.reset_pos();
+        player_2.reset_pos();
         pause(ball, player_1, player_2);
         return;
     } else if (ball.x > WINDOW_WIDTH) {
         try player_2.update_score(1);
         started = false;
         ball.reset();
+        player_1.reset_pos();
+        player_2.reset_pos();
         pause(ball, player_1, player_2);
         return;
     }
@@ -196,6 +200,7 @@ pub fn main() !void {
         PADDLE_WIDTH, 
         PADDLE_HEIGHT, 
         Color.purple,
+        MAX_PLAYER_SPEED,
     );
     var player_2 = Paddle.init(
         false, 
@@ -205,6 +210,7 @@ pub fn main() !void {
         PADDLE_WIDTH, 
         PADDLE_HEIGHT, 
         Color.red,
+        MAX_PLAYER_SPEED,
     );
     var ball = Ball.init(
         WINDOW_WIDTH / 2,
