@@ -57,13 +57,22 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     // - [ ] account for top/bottom collision
     switch (paddle.player) {
         Player.player_one => {
-            ball.dx *= -1;
+            if (ball.x + ball.size > paddle.x){
+                ball.dy += paddle.dy;
+            } else {
+                ball.dx *= -1;
+                ball.dy += paddle.dy*0.5; 
+            }
         },
         Player.player_two => {
-            ball.dx *= -1;
+            if (ball.x < paddle.x){
+                ball.dy += paddle.dy;
+            } else {
+                ball.dx *= -1;
+                ball.dy += paddle.dy*0.5; 
+            }
         },
     }
-    ball.dy += paddle.dy*0.5; 
 }
 
 fn win(score: i32, player: Player) void {
