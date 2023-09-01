@@ -58,7 +58,8 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     switch (paddle.player) {
         Player.player_one => {
             if (ball.x + ball.size > paddle.x){
-                ball.dy += paddle.dy;
+                ball.dy *= -1;
+                ball.dy += paddle.dy*0.5;
             } else {
                 ball.dx *= -1;
                 ball.dy += paddle.dy*0.5; 
@@ -66,7 +67,8 @@ fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
         },
         Player.player_two => {
             if (ball.x < paddle.x){
-                ball.dy += paddle.dy;
+                ball.dy *= -1;
+                ball.dy += paddle.dy*0.5;
             } else {
                 ball.dx *= -1;
                 ball.dy += paddle.dy*0.5; 
