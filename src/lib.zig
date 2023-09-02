@@ -46,9 +46,9 @@ pub const Paddle = struct {
     max_speed: f32,
     score: i32,
     rect: c.SDL_Rect,
-    //score_msg: *ScreenText,
+    max_height: f32,
 
-    pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color, max_speed: f32) Paddle {
+    pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color, max_speed: f32, max_height: u32) Paddle {
         return Paddle { 
             .is_human = human,
             .player = p,
@@ -62,6 +62,7 @@ pub const Paddle = struct {
             .color = col,
             .max_speed = max_speed,
             .score = 0,
+            .max_height = @floatFromInt(max_height),
             .rect = c.SDL_Rect{
                 .x = @intFromFloat(x),
                 .y = @intFromFloat(y),
@@ -75,6 +76,7 @@ pub const Paddle = struct {
         self.pdy = self.dy;
         self.dy = 0;
     }
+
     pub fn unpause(self: *Paddle) void {
         if (self.pdy != 0) {
             self.dy = self.pdy;
@@ -83,7 +85,6 @@ pub const Paddle = struct {
                 self.dy = 3;
             }
         }
-
     }
 
     pub fn update_score(self: *Paddle,score_delta: i32) !void {
@@ -95,10 +96,12 @@ pub const Paddle = struct {
         self.dy = 0;
         self.y = self.starty;
     }
+
     pub fn reset_pos(self:*Paddle) void {
         self.dy = 0;
         self.y = self.starty;
     }
+
     pub fn update(self: *Paddle) void {
         self.y += self.dy;
         self.rect = self.current_rect();
@@ -123,10 +126,10 @@ pub const Paddle = struct {
         };
     }
     
-    pub fn move_to_ball(self: *Paddle, ball: Ball, window: Window) void {
-        const diff = (ball.y-self.y)*0.2;
+    pub fn move_to_ball(self: *Paddle, ball: Ball) void {
+        const diff = (ball.y-self.y-self.height/2)*0.2;
         if (ball.is_playable and
-            self.y+self.height+diff < @as(f32, @floatFromInt(window.height)) and
+            self.y+diff < self.max_height and
             self.y+diff >= 0){
 
             if (abs(diff) < self.max_speed) {
@@ -194,6 +197,7 @@ pub const Ball = struct {
         }
         self.is_playable = true;
     }
+
     pub fn reset(self: *Ball) void {
         self.x = self.startx;
         self.y = self.starty;
@@ -214,7 +218,6 @@ pub const Ball = struct {
             .w = @intFromFloat(self.size), 
             .h = @intFromFloat(self.size)
         };
-
     }
 
     pub fn next_rect(self: *Ball) c.SDL_Rect {
@@ -244,7 +247,6 @@ pub const ScreenText = struct {
     font_rect: c.SDL_Rect,
     surface: *c.SDL_Surface,
     tex: *c.SDL_Texture,
-    //msg: []const u8,
 
     pub fn init(x: f32, y: f32, font_size: c_int, color: Color, msg: []const u8, renderer: *c.SDL_Renderer) !ScreenText {
         const font_rw = c.SDL_RWFromConstMem(
@@ -287,7 +289,6 @@ pub const ScreenText = struct {
             .surface = font_surface,
             .tex = font_tex,
             .font_rect = font_rect,
-            //.msg = msg,
         };
     }
 
@@ -405,6 +406,7 @@ fn start_moving() !f32 {
     }
     return 2;
 }
+
 fn abs(num: f32) f32 {
     switch (num > 0) {
         true => return num,

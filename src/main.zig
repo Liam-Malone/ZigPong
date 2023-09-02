@@ -1,10 +1,3 @@
-//TODO:
-// - [x] Actually randomize ball path to some degree
-// - [x] Improve collision (vertical, sticking)
-// - [x] Have AI Paddle follow ball path
-// - [ ] Edit build script for cross-compiling
-// - [ ] Maybe add multiplayer
-// - [ ] *MAYBE* Add music (sin wave or something)
 const std = @import("std");
 const lib = @import("lib.zig");
 const c = @cImport({
@@ -51,8 +44,6 @@ fn collide_vert_border(paddle: *Paddle) void {
 }
 
 fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
-    //TODO: 
-    // - [ ] minor improvements
     switch (paddle.player) {
         Player.player_one => {
             if (ball.x + ball.size > paddle.x){
@@ -88,6 +79,7 @@ fn pause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) void {
     player_2.pause();
     paused = true;
 }
+
 fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     try ball.unpause();
     player_1.unpause();
@@ -95,12 +87,12 @@ fn unpause(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     paused = false;
 }
 
-fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle, window: Window) !void {
+fn update(ball: *Ball, player_1: *Paddle, player_2: *Paddle) !void {
     win(player_1.score, player_1.player);
     win(player_2.score, player_2.player);
 
     if (!player_2.is_human) {
-        player_2.move_to_ball(ball.*, window);
+        player_2.move_to_ball(ball.*);
     }
     collide_vert_border(player_2);
     collide_vert_border(player_1);
@@ -199,6 +191,7 @@ pub fn main() !void {
         PADDLE_HEIGHT, 
         Color.purple,
         MAX_PLAYER_SPEED,
+        WINDOW_HEIGHT - PADDLE_HEIGHT,
     );
     var player_2 = Paddle.init(
         false, 
@@ -209,6 +202,7 @@ pub fn main() !void {
         PADDLE_HEIGHT, 
         Color.red,
         MAX_PLAYER_SPEED,
+        WINDOW_HEIGHT - PADDLE_HEIGHT,
     );
     var ball = Ball.init(
         WINDOW_WIDTH / 2,
@@ -280,7 +274,7 @@ pub fn main() !void {
             c.SDL_RenderPresent(window.renderer);
             c.SDL_Delay(1000 / FPS);
 
-            try update(&ball, &player_1, &player_2, window);
+            try update(&ball, &player_1, &player_2);
         } 
         else {
             started = false;
