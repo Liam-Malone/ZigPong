@@ -17,14 +17,13 @@ const Ball = lib.Ball;
 const ScreenText = lib.ScreenText;
 const Window = lib.Window;
 
-
 // CONSTANTS
 const FPS = 60;
 const DELTA_TIME_SEC: f32 = 1.0 / @as(f32, FPS);
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
 const BACKGROUND_COLOR = Color.dark_gray;
-const MAX_SCORE = 3;
+const MAX_SCORE = 10;
 const MAX_PLAYER_SPEED = 4;
 const SPEED_INCREASE = 0.5;
 const BALL_SIZE = 8;
@@ -46,21 +45,21 @@ fn collide_vert_border(paddle: *Paddle) void {
 fn paddle_collide(ball: *Ball, paddle: *Paddle) void {
     switch (paddle.player) {
         Player.player_one => {
-            if (ball.x + ball.size > paddle.x){
+            if (ball.x + ball.size > paddle.x) {
                 ball.dy *= -1;
-                ball.dy += paddle.dy*0.5;
+                ball.dy += paddle.dy * 0.5;
             } else {
                 ball.dx *= -1;
-                ball.dy += paddle.dy*0.5; 
+                ball.dy += paddle.dy * 0.5;
             }
         },
         Player.player_two => {
-            if (ball.x < paddle.x){
+            if (ball.x < paddle.x) {
                 ball.dy *= -1;
-                ball.dy += paddle.dy*0.5;
+                ball.dy += paddle.dy * 0.5;
             } else {
                 ball.dx *= -1;
-                ball.dy += paddle.dy*0.5; 
+                ball.dy += paddle.dy * 0.5;
             }
         },
     }
@@ -152,14 +151,7 @@ pub fn main() !void {
     var window = try Window.init("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     defer window.deinit();
 
-    var other_text: ScreenText = try ScreenText.init(
-        WINDOW_WIDTH / 2 - 100, 
-        WINDOW_HEIGHT/2, 
-        30, 
-        Color.white, 
-        "ALT Text", 
-        window.renderer
-    );
+    var other_text: ScreenText = try ScreenText.init(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2, 30, Color.white, "ALT Text", window.renderer);
     defer other_text.deinit();
 
     var p1_score_msg: ScreenText = try ScreenText.init(
@@ -183,33 +175,28 @@ pub fn main() !void {
     defer p2_score_msg.deinit();
 
     var player_1 = Paddle.init(
-        true, 
-        Player.player_one, 
-        WINDOW_WIDTH - 60, 
-        WINDOW_HEIGHT / 2, 
-        PADDLE_WIDTH, 
-        PADDLE_HEIGHT, 
+        true,
+        Player.player_one,
+        WINDOW_WIDTH - 60,
+        WINDOW_HEIGHT / 2,
+        PADDLE_WIDTH,
+        PADDLE_HEIGHT,
         Color.purple,
         MAX_PLAYER_SPEED,
         WINDOW_HEIGHT - PADDLE_HEIGHT,
     );
     var player_2 = Paddle.init(
-        false, 
-        Player.player_two, 
-        30, 
-        WINDOW_HEIGHT / 2, 
-        PADDLE_WIDTH, 
-        PADDLE_HEIGHT, 
+        false,
+        Player.player_two,
+        30,
+        WINDOW_HEIGHT / 2,
+        PADDLE_WIDTH,
+        PADDLE_HEIGHT,
         Color.red,
         MAX_PLAYER_SPEED,
         WINDOW_HEIGHT - PADDLE_HEIGHT,
     );
-    var ball = Ball.init(
-        WINDOW_WIDTH / 2,
-        WINDOW_HEIGHT / 2,
-        BALL_SIZE,
-        Color.white
-    );
+    var ball = Ball.init(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, BALL_SIZE, Color.white);
 
     const keyboard = c.SDL_GetKeyboardState(null);
     while (!quit) {
@@ -227,15 +214,17 @@ pub fn main() !void {
                             game_over = false;
                             continue;
                         }
-                        if (!started) { started = true; }
+                        if (!started) {
+                            started = true;
+                        }
                         if (paused) {
                             try unpause(&ball, &player_1, &player_2);
-                        }else if (!paused) {
+                        } else if (!paused) {
                             pause(&ball, &player_1, &player_2);
                         }
                     },
                     'q' => {
-                        if (paused or game_over){
+                        if (paused or game_over) {
                             ball.reset();
                             player_1.reset();
                             player_2.reset();
@@ -275,8 +264,7 @@ pub fn main() !void {
             c.SDL_Delay(1000 / FPS);
 
             try update(&ball, &player_1, &player_2);
-        } 
-        else {
+        } else {
             started = false;
             if (keyboard[c.SDL_SCANCODE_Q] != 0) {
                 ball.reset();
