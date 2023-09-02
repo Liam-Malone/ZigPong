@@ -15,4 +15,4 @@ Requirements:
 $ zig build run
 ```
 
-> I've only tested this on linux, feel free to try compiling for yourself on other platforms
+> I've only tested this on linux and an intel macbook feel free to try compiling for yourself on other platforms
