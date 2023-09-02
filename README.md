@@ -9,7 +9,7 @@ GUI Pong game in Zig, using SDL2
 Requirements:
 
 - Zig v0.11.0
-- SDL2 and SDL_ttf
+- SDL2 and SDL2_ttf
 
 ```console
 $ zig build run
