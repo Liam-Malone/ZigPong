@@ -24,16 +24,46 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    if (exe.target.isDarwin()){
+    if (exe.target.isDarwin() and exe.target.isNative()) {
         // assumes you used brew to install sdl2 and sdl2_ttf
-        exe.addIncludePath(.{.path="/usr/local/include"},);
-        exe.addLibraryPath(.{.path="/usr/local/lib"},);
+        exe.addIncludePath(
+            .{ .path = "/usr/local/include" },
+        );
+        exe.addLibraryPath(
+            .{ .path = "/usr/local/lib" },
+        );
+    } else if (exe.target.isWindows()) {
+        exe.addIncludePath(
+            .{ .path = "vendor/windows/SDL2/x86_64-w64-mingw32/include" },
+        );
+        exe.addLibraryPath(
+            .{ .path = "vendor/windows/SDL2/x86_64-w64-mingw32/lib" },
+        );
+        if (!exe.target.isNative()) {
+            exe.linkSystemLibrary("opengl32");
+            exe.linkSystemLibrary("winmm");
+            exe.linkSystemLibrary("ole32");
+            exe.linkSystemLibrary("oleaut32");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("setupapi");
+            exe.linkSystemLibrary("imm32");
+            exe.linkSystemLibrary("version");
+            exe.linkSystemLibrary("rpcrt4");
+        }
+    } else {
+        exe.addIncludePath(
+            .{ .path = "/usr/include" },
+        );
+        exe.addLibraryPath(
+            .{ .path = "/usr/lib" },
+        );
     }
+
     exe.linkSystemLibrary("c");
+
     exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("SDL2_ttf");
 
- 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).

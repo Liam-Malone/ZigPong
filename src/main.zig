@@ -148,7 +148,7 @@ var game_over = false;
 var winner: Player = undefined;
 
 pub fn main() !void {
-    var window = try Window.init("ZigPong", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    var window = try Window.init("ZigPong", 100, 100, WINDOW_WIDTH, WINDOW_HEIGHT);
     defer window.deinit();
 
     var other_text: ScreenText = try ScreenText.init(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2, 30, Color.white, "ALT Text", window.renderer);

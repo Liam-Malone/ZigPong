@@ -49,7 +49,7 @@ pub const Paddle = struct {
     max_height: f32,
 
     pub fn init(human: bool, p: Player, x: f32, y: f32, w: f32, h: f32, col: Color, max_speed: f32, max_height: u32) Paddle {
-        return Paddle { 
+        return Paddle{
             .is_human = human,
             .player = p,
             .x = x,
@@ -87,7 +87,7 @@ pub const Paddle = struct {
         }
     }
 
-    pub fn update_score(self: *Paddle,score_delta: i32) !void {
+    pub fn update_score(self: *Paddle, score_delta: i32) !void {
         self.score += score_delta;
     }
 
@@ -97,7 +97,7 @@ pub const Paddle = struct {
         self.y = self.starty;
     }
 
-    pub fn reset_pos(self:*Paddle) void {
+    pub fn reset_pos(self: *Paddle) void {
         self.dy = 0;
         self.y = self.starty;
     }
@@ -108,34 +108,23 @@ pub const Paddle = struct {
     }
 
     pub fn current_rect(self: *Paddle) c.SDL_Rect {
-        return c.SDL_Rect{ 
-            .x = @intFromFloat(self.x), 
-            .y = @intFromFloat(self.y), 
-            .w = @intFromFloat(self.width), 
-            .h = @intFromFloat(self.height)
-        };
-
+        return c.SDL_Rect{ .x = @intFromFloat(self.x), .y = @intFromFloat(self.y), .w = @intFromFloat(self.width), .h = @intFromFloat(self.height) };
     }
 
     pub fn next_rect(self: *Paddle) c.SDL_Rect {
-        return c.SDL_Rect{ 
-            .x = @intFromFloat(self.x), 
-            .y = @intFromFloat(self.y + self.dy), 
-            .w = @intFromFloat(self.width), 
-            .h = @intFromFloat(self.height)
-        };
+        return c.SDL_Rect{ .x = @intFromFloat(self.x), .y = @intFromFloat(self.y + self.dy), .w = @intFromFloat(self.width), .h = @intFromFloat(self.height) };
     }
-    
-    pub fn move_to_ball(self: *Paddle, ball: Ball) void {
-        const diff = (ball.y-self.y-self.height/2)*0.2;
-        if (ball.is_playable and
-            self.y+diff < self.max_height and
-            self.y+diff >= 0){
 
+    pub fn move_to_ball(self: *Paddle, ball: Ball) void {
+        const diff = (ball.y - self.y - self.height / 2) * 0.2;
+        if (ball.is_playable and
+            self.y + diff < self.max_height and
+            self.y + diff >= 0)
+        {
             if (abs(diff) < self.max_speed) {
                 self.dy = diff;
             } else {
-                switch(diff > 0) {
+                switch (diff > 0) {
                     true => self.dy = self.max_speed,
                     false => self.dy = (self.max_speed * -1),
                 }
@@ -158,7 +147,7 @@ pub const Ball = struct {
     rect: c.SDL_Rect,
 
     pub fn init(x: f32, y: f32, size: f32, col: Color) Ball {
-        return Ball {
+        return Ball{
             .x = x,
             .startx = x,
             .y = y,
@@ -191,7 +180,7 @@ pub const Ball = struct {
         if (self.pdx != 0) {
             self.dy = self.pdy;
             self.dx = self.pdx;
-        }else {
+        } else {
             self.dy = try start_moving();
             self.dx = try start_moving();
         }
@@ -212,29 +201,19 @@ pub const Ball = struct {
     }
 
     pub fn current_rect(self: *Ball) c.SDL_Rect {
-        return c.SDL_Rect{ 
-            .x = @intFromFloat(self.x), 
-            .y = @intFromFloat(self.y), 
-            .w = @intFromFloat(self.size), 
-            .h = @intFromFloat(self.size)
-        };
+        return c.SDL_Rect{ .x = @intFromFloat(self.x), .y = @intFromFloat(self.y), .w = @intFromFloat(self.size), .h = @intFromFloat(self.size) };
     }
 
     pub fn next_rect(self: *Ball) c.SDL_Rect {
         var xbuffer: f32 = PIXEL_BUFFER;
         var ybuffer: f32 = PIXEL_BUFFER;
         if (self.dx < 0) {
-           xbuffer *= -1; 
+            xbuffer *= -1;
         }
         if (self.dy < 0) {
             ybuffer *= -1;
         }
-        return c.SDL_Rect{ 
-            .x = @intFromFloat(self.x + self.dx + xbuffer), 
-            .y = @intFromFloat(self.y + self.dy + ybuffer), 
-            .w = @intFromFloat(self.size), 
-            .h = @intFromFloat(self.size)
-        };
+        return c.SDL_Rect{ .x = @intFromFloat(self.x + self.dx + xbuffer), .y = @intFromFloat(self.y + self.dy + ybuffer), .w = @intFromFloat(self.size), .h = @intFromFloat(self.size) };
     }
 };
 
@@ -260,7 +239,7 @@ pub const ScreenText = struct {
         const font = c.TTF_OpenFontRW(font_rw, 0, font_size) orelse {
             c.SDL_Log("Unable to load font: %s", c.TTF_GetError());
             return error.SDLInitializationFailed;
-        }; 
+        };
         var font_surface = c.TTF_RenderUTF8_Solid(
             font,
             @ptrCast(msg),
@@ -280,7 +259,7 @@ pub const ScreenText = struct {
             return error.SDLInitializationFailed;
         };
 
-        return ScreenText {
+        return ScreenText{
             .x = x,
             .y = y,
             .font_rw = font_rw,
@@ -300,7 +279,7 @@ pub const ScreenText = struct {
     }
 
     pub fn update(self: *ScreenText, renderer: *c.SDL_Renderer, allocator: std.mem.Allocator, player_num: u32, player_score: i32) !void {
-        var x: []u8 = try std.fmt.allocPrint(allocator, "P{d} Score: {d}", .{player_num, player_score});
+        var x: []u8 = try std.fmt.allocPrint(allocator, "P{d} Score: {d}", .{ player_num, player_score });
         defer allocator.free(x);
         self.surface = c.TTF_RenderUTF8_Solid(
             self.font,
@@ -311,7 +290,7 @@ pub const ScreenText = struct {
             return error.SDLInitializationFailed;
         };
 
-        self.font_rect = c.SDL_Rect {
+        self.font_rect = c.SDL_Rect{
             .x = @intFromFloat(self.x),
             .y = @intFromFloat(self.y),
             .w = self.surface.*.w,
@@ -327,7 +306,6 @@ pub const ScreenText = struct {
     }
 
     pub fn render(self: *ScreenText, renderer: *c.SDL_Renderer, msg: []const u8) !void {
-
         self.surface = c.TTF_RenderUTF8_Solid(
             self.font,
             @ptrCast(msg),
@@ -337,7 +315,7 @@ pub const ScreenText = struct {
             return error.SDLInitializationFailed;
         };
 
-        self.font_rect = c.SDL_Rect {
+        self.font_rect = c.SDL_Rect{
             .x = @intFromFloat(self.x),
             .y = @intFromFloat(self.y),
             .w = self.surface.*.w,
@@ -360,11 +338,10 @@ pub const Window = struct {
     height: u32,
 
     pub fn init(name: []const u8, xpos: u8, ypos: u8, width: u32, height: u32) !Window {
-
         if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
             c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
             return error.SDLInitializationFailed;
-            }
+        }
 
         if (c.TTF_Init() < 0) {
             c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
@@ -378,7 +355,7 @@ pub const Window = struct {
             c.SDL_Log("Unable to initialize SDL: {s}\n", c.SDL_GetError());
             return error.SDLInitializationFailed;
         };
-        return Window {
+        return Window{
             .window = window,
             .renderer = renderer,
             .width = width,
