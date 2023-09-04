@@ -31,6 +31,8 @@ Linux users, feel free to try to run this with WINE
 
 ## How To Play
 
-It's pong. Simple enough really.
+It's pong. Simple enough really;
 
-Hit Spacebar to start, use the arrow keys to control your paddle (the purple one)
+Hit Spacebar to start, use the arrow keys to control your paddle (the purple one).
+
+10 points to win, then hit Spacebar to play again or Q to quit.
