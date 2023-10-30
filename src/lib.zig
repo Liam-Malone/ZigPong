@@ -8,14 +8,14 @@ pub const Color = enum(u32) {
     white = 0xFFFFFFFF,
     purple = 0x7BF967AA,
     red = 0xFC1A17CC,
-    dark_gray = 0xFF181818,
+    dark_gray = 0x181818FF,
 
     pub fn make_sdl_color(col: Color) c.SDL_Color {
         var color = @intFromEnum(col);
-        const r: u8 = @truncate((color >> (0 * 8)) & 0xFF);
-        const g: u8 = @truncate((color >> (1 * 8)) & 0xFF);
-        const b: u8 = @truncate((color >> (2 * 8)) & 0xFF);
-        const a: u8 = @truncate((color >> (3 * 8)) & 0xFF);
+        const r: u8 = @truncate((color >> (3 * 8)) & 0xFF);
+        const g: u8 = @truncate((color >> (2 * 8)) & 0xFF);
+        const b: u8 = @truncate((color >> (1 * 8)) & 0xFF);
+        const a: u8 = @truncate((color >> (0 * 8)) & 0xFF);
 
         return c.SDL_Color{
             .r = r,
