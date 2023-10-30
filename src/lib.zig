@@ -1,8 +1,6 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("SDL2/SDL.h");
-    @cInclude("SDL2/SDL_ttf.h");
-});
+const c = @import("c.zig");
+
 const FONT_FILE = @embedFile("DejaVuSans.ttf");
 const PIXEL_BUFFER = 1;
 

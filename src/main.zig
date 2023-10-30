@@ -1,9 +1,6 @@
 const std = @import("std");
 const lib = @import("lib.zig");
-const c = @cImport({
-    @cInclude("SDL2/SDL.h");
-    @cInclude("SDL2/SDL_ttf.h");
-});
+const c = @import("c.zig");
 // syntax simplification for using imports
 const overlaps = c.SDL_HasIntersection;
 const allocator = std.heap.page_allocator;
@@ -29,7 +26,6 @@ const SPEED_INCREASE = 0.5;
 const BALL_SIZE = 8;
 const PADDLE_HEIGHT = 60;
 const PADDLE_WIDTH = 20;
-const FONT_FILE = @embedFile("DejaVuSans.ttf");
 
 fn set_render_color(renderer: *c.SDL_Renderer, col: c.SDL_Color) void {
     _ = c.SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
