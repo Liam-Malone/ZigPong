@@ -57,6 +57,12 @@ pub fn build(b: *std.Build) void {
         exe.addLibraryPath(
             .{ .path = "/usr/lib" },
         );
+        exe.addIncludePath(
+            .{ .path = "/usr/local/include" },
+        );
+        exe.addLibraryPath(
+            .{ .path = "/usr/local/lib" },
+        );
     }
 
     exe.linkSystemLibrary("c");
