@@ -1,8 +1,8 @@
 # Pong
 
-![screenshot](./game-screenshot.png)
-![screenshot](./menu-screenshot.png)
-![screenshot](./pause-screenshot.png)
+![screenshot](screenshots/game-screenshot.png)
+![screenshot](screenshots/menu-screenshot.png)
+![screenshot](screenshots/pause-screenshot.png)
 
 GUI Pong game in Zig, using Raylib (Re-written from SDL2)
 
