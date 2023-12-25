@@ -1,0 +1,4 @@
+*.c expert-ignore
+*.h expert-ignore
+Makefile expert-ignore
+
