@@ -140,6 +140,9 @@ pub fn main() !void {
         // UPDATE VARIABLES
         switch (game_stage) {
             .Menu => {
+                paddles[0].p_type = .AI;
+                paddles[1].p_type = .AI;
+                scores = .{ 0, 0 };
                 if (rl.IsKeyPressed(rl.KEY_ONE)) {
                     paddles[0].p_type = .Human;
                     game_stage = .Play;
@@ -165,6 +168,7 @@ pub fn main() !void {
             .Pause => {
                 // pause game
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Play;
+                if (rl.IsKeyPressed(rl.KEY_ESCAPE)) game_stage = .Menu;
                 // handle clicking of UI elements
             },
             .Over => {
@@ -179,16 +183,14 @@ pub fn main() !void {
         rl.ClearBackground(rl.BLACK);
         switch (game_stage) {
             .Menu => {
-                rl.DrawText("Press 1 Or 2 To Select Player", screen_width / 5 * 2, (screen_height / 8) * 3, 24, rl.RAYWHITE);
+                rl.DrawText("Press 1 Or 2 To Select Player", screen_width / 20 * 7, (screen_height / 8) * 3, 24, rl.RAYWHITE);
                 rl.DrawText("(Or SPACEBAR To Let It Play Itself)", screen_width / 10 * 3, (screen_height / 8) * 7, 24, rl.RAYWHITE);
             },
             .Play => {
-                //rl.BeginMode2D(camera);
                 for (paddles) |p| {
                     rl.DrawRectangleRec(.{ .x = p.pos.x, .y = p.pos.y, .width = p.w, .height = p.h }, rl.RAYWHITE);
                 }
                 rl.DrawCircleV(ball.pos, ball.radius, rl.RAYWHITE);
-                //rl.EndMode2D();
 
                 var tmp = std.fmt.allocPrint(alloc, "{d} | {d} ", .{ scores[1], scores[0] }) catch "err";
                 defer alloc.free(tmp);
