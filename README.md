@@ -24,6 +24,8 @@ I have a release available with a windows binary
 
 Linux users, feel free to try to run this with WINE
 
+> NOTE: The binary is for an older build, the current iteration isn't quite ready for a 'release' yet
+
 ## How To Play
 
 It's pong. Simple enough really
