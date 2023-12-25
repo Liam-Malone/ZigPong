@@ -1,27 +1,22 @@
 # Pong
 
-![screenshot](./screenshot.png)
+![screenshot](./game-screenshot.png)
+![screenshot](./menu-screenshot.png)
+![screenshot](./pause-screenshot.png)
 
-GUI Pong game in Zig, using SDL2
+GUI Pong game in Zig, using Raylib (Re-written from SDL2)
 
 ## Quick Start
 
 ### Building From Source
 
-Compiling on Linux or Mac should work just fine.
-
-If you're on Windows... either run the binary or be the first to test compiling this on Windows
-
 Requirements:
 
 - Zig v0.11.0
-- SDL2 and SDL2_ttf
 
 ```console
 $ zig build run
 ```
-
-> I haven't got an M1 or M2 mac to test on, but I assume it should work fine
 
 ### Binary Download
 
@@ -31,8 +26,5 @@ Linux users, feel free to try to run this with WINE
 
 ## How To Play
 
-It's pong. Simple enough really;
+It's pong. Simple enough really
 
-Hit Spacebar to start, use the arrow keys to control your paddle (the purple one).
-
-10 points to win, then hit Spacebar to play again or Q to quit.

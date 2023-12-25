@@ -83,7 +83,7 @@ const Paddle = struct {
 const FPS = 60;
 const MAX_SCORE = 10;
 const PADDLE_SPEED = 500;
-const BALL_SPEED = 600;
+const BALL_SPEED = 800;
 const BALL_RADIUS = 8;
 const PADDLE_HEIGHT = 80;
 const PADDLE_WIDTH = 10;
@@ -146,10 +146,10 @@ pub fn main() !void {
                 } else if (rl.IsKeyPressed(rl.KEY_TWO)) {
                     paddles[1].p_type = .Human;
                     game_stage = .Play;
-                } else if (rl.GetKeyPressed() != 0) {
+                } else if (rl.IsKeyPressed(rl.KEY_SPACE)) {
                     game_stage = .Play;
                 }
-                ball.dy = BALL_SPEED / 10;
+                ball.dy = BALL_SPEED / 6;
                 ball.dx = BALL_SPEED / 3;
                 for (paddles, 0..) |p, i| {
                     if (p.p_type == .AI) paddles[i].dy = PADDLE_SPEED * delta_time;
@@ -180,7 +180,7 @@ pub fn main() !void {
         switch (game_stage) {
             .Menu => {
                 rl.DrawText("Press 1 Or 2 To Select Player", screen_width / 5 * 2, (screen_height / 8) * 3, 24, rl.RAYWHITE);
-                rl.DrawText("(Or Any Other Key To Let It Play Itself)", screen_width / 10 * 3, (screen_height / 8) * 7, 24, rl.RAYWHITE);
+                rl.DrawText("(Or SPACEBAR To Let It Play Itself)", screen_width / 10 * 3, (screen_height / 8) * 7, 24, rl.RAYWHITE);
             },
             .Play => {
                 //rl.BeginMode2D(camera);
@@ -260,10 +260,12 @@ fn update_paddles(p_arr: []Paddle, ball: *Ball, screen_height: f32, delta_time: 
 fn update_ball(b: *Ball, p_arr: []Paddle, scores: []u8, screen_width: f32, screen_height: f32, delta_time: f32) void {
     if (b.pos.x > screen_width) {
         b.pos.x = screen_width / 2;
+        b.dx *= -1;
         scores[0] += 1;
         return;
     } else if (b.pos.x < 0) {
         b.pos.x = screen_width / 2;
+        b.dx *= -1;
         scores[1] += 1;
         return;
     }
@@ -285,7 +287,7 @@ fn update_ball(b: *Ball, p_arr: []Paddle, scores: []u8, screen_width: f32, scree
                 .PlayerOne => p.pos.x + p.w + b.radius,
             };
             b.dx *= -1;
-            b.dy += p.dy * delta_time;
+            b.dy += p.dy;
             return;
         }
     }
