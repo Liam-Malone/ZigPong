@@ -1,5 +1,1 @@
-*.c expert-ignore
-*.h expert-ignore
-Makefile expert-ignore
-
-lib/**/* expert-ignore
+lib/* linguist-vendored
