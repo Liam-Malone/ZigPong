@@ -2,3 +2,4 @@
 *.h expert-ignore
 Makefile expert-ignore
 
+lib/**/* expert-ignore
