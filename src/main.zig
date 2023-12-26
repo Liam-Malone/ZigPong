@@ -48,6 +48,12 @@ const GameStage = enum {
     Over,
 };
 
+const PlayMode = enum {
+    Demo,
+    SinglePlayer,
+    MultiPlayer,
+};
+
 const PaddleID = enum {
     PlayerOne,
     PlayerTwo,
@@ -136,7 +142,9 @@ pub fn main() !void {
     };
 
     var game_stage: GameStage = .Menu;
+    var play_mode: PlayMode = .Demo;
     var victor: ?PaddleID = null;
+    var demo_timer: i64 = std.time.milliTimestamp();
 
     rl.SetTargetFPS(FPS);
     rl.SetExitKey(EXIT_KEY);
@@ -146,45 +154,81 @@ pub fn main() !void {
     while (!rl.WindowShouldClose() and !quit) {
         // UPDATE VARIABLES
         const delta_time: f32 = rl.GetFrameTime();
+        const new_time = std.time.milliTimestamp();
         switch (game_stage) {
             .Menu => {
-                victor = null;
-                paddles[PLAYER_ONE].p_type = .AI;
-                paddles[PLAYER_TWO].p_type = .AI;
-                scores = .{ 0, 0 };
+                if (new_time > (1000 * 12) and new_time - (1000 * 12) > demo_timer) {
+                    std.debug.print("old: {d}\nnew: {d}\n", .{ demo_timer, new_time });
+                    demo_timer = new_time;
+                    play_mode = .Demo;
+                    for (paddles, 0..) |_, i| {
+                        paddles[i].p_type = .AI;
+                    }
+                    game_stage = .Play;
+                }
+
                 if (rl.IsKeyPressed(rl.KEY_Q)) quit = true;
                 if (rl.IsKeyPressed(rl.KEY_ONE)) {
+                    play_mode = .SinglePlayer;
                     paddles[PLAYER_ONE].p_type = .Human;
                     game_stage = .Play;
                 } else if (rl.IsKeyPressed(rl.KEY_TWO)) {
+                    play_mode = .MultiPlayer;
+                    paddles[PLAYER_ONE].p_type = .Human;
                     paddles[PLAYER_TWO].p_type = .Human;
                     game_stage = .Play;
                 } else if (rl.IsKeyPressed(rl.KEY_SPACE)) {
+                    play_mode = .Demo;
+                    paddles[PLAYER_ONE].p_type = .AI;
+                    paddles[PLAYER_TWO].p_type = .AI;
                     game_stage = .Play;
                 }
+
                 ball.dy = BALL_SPEED / 6;
                 ball.dx = BALL_SPEED / 3;
                 for (paddles, 0..) |p, i| {
                     if (p.p_type == .AI) paddles[i].dy = PADDLE_SPEED * delta_time;
                 }
+                victor = null;
+                scores = .{ 0, 0 };
             },
             .Play => {
-                if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Pause;
-                update(&paddles, &ball, &scores, &sounds, screen_width, screen_height, delta_time);
-                if (scores[PLAYER_ONE] >= MAX_SCORE) {
-                    victor = .PlayerOne;
-                    game_stage = .Over;
-                } else if (scores[PLAYER_TWO] >= MAX_SCORE) {
-                    victor = .PlayerTwo;
-                    game_stage = .Over;
+                switch (play_mode) {
+                    .Demo => {
+                        update(&paddles, &ball, &scores, &sounds, play_mode, screen_width, screen_height, delta_time);
+                        if (scores[PLAYER_ONE] >= MAX_SCORE or
+                            scores[PLAYER_TWO] >= MAX_SCORE)
+                            game_stage = .Menu;
+                        if (rl.IsKeyPressed(rl.KEY_SPACE)) {
+                            demo_timer = std.time.milliTimestamp();
+                            game_stage = .Menu;
+                        }
+                    },
+                    .SinglePlayer, .MultiPlayer => {
+                        if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Pause;
+                        update(&paddles, &ball, &scores, &sounds, play_mode, screen_width, screen_height, delta_time);
+                        if (scores[PLAYER_ONE] >= MAX_SCORE) {
+                            victor = .PlayerOne;
+                            game_stage = .Over;
+                        } else if (scores[PLAYER_TWO] >= MAX_SCORE) {
+                            victor = .PlayerTwo;
+                            game_stage = .Over;
+                        }
+                    },
                 }
             },
             .Pause => {
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Play;
-                if (rl.IsKeyPressed(rl.KEY_ESCAPE)) game_stage = .Menu;
+                if (rl.IsKeyPressed(rl.KEY_ESCAPE)) {
+                    game_stage = .Menu;
+                    demo_timer = std.time.milliTimestamp();
+                }
             },
             .Over => {
-                if (rl.IsKeyPressed(rl.KEY_ENTER)) game_stage = .Menu;
+                if (rl.IsKeyPressed(rl.KEY_ENTER)) {
+                    game_stage = .Menu;
+                    demo_timer = std.time.milliTimestamp();
+                }
                 if (rl.IsKeyPressed(rl.KEY_Q)) quit = true;
             },
         }
@@ -195,9 +239,9 @@ pub fn main() !void {
         rl.ClearBackground(rl.BLACK);
         switch (game_stage) {
             .Menu => {
-                rl.DrawText("SELECT PLAYER", screen_width / 20 * 7, (screen_height / 4), 40, rl.RAYWHITE);
-                rl.DrawText("[1] Player One", screen_width / 5, (screen_height / 8) * 3, 30, rl.RAYWHITE);
-                rl.DrawText("[2] Player Two", screen_width / 5 * 3, (screen_height / 8) * 3, 30, rl.RAYWHITE);
+                rl.DrawText("SELECT MODE", screen_width / 20 * 7, (screen_height / 4), 40, rl.RAYWHITE);
+                rl.DrawText("[1] SinglePlayer", screen_width / 5, (screen_height / 8) * 3, 30, rl.RAYWHITE);
+                rl.DrawText("[2] MultiPlayer", screen_width / 5 * 3, (screen_height / 8) * 3, 30, rl.RAYWHITE);
                 rl.DrawText("[SPACEBAR] Demo mode", screen_width / 20 * 7, (screen_height / 8) * 5, 30, rl.RAYWHITE);
                 rl.DrawText("[Q] Quit", screen_width / 20 * 7, screen_height / 9 * 7, 30, rl.RAYWHITE);
             },
@@ -285,19 +329,21 @@ fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage,
     } else return false;
 }
 
-fn update(p_arr: []Paddle, ball: *Ball, scores: []u8, sounds: []rl.Sound, screen_width: f32, screen_height: f32, delta_time: f32) void {
+fn update(p_arr: []Paddle, ball: *Ball, scores: []u8, sounds: []rl.Sound, mode: PlayMode, screen_width: f32, screen_height: f32, delta_time: f32) void {
     // PADDLES
     for (p_arr, 0..) |p, i| {
         switch (p.p_type) {
             .Human => {
-                if (rl.IsKeyDown(rl.KEY_UP)) {
+                const up_key = if (mode == .SinglePlayer) rl.KEY_UP else if (i == 1) rl.KEY_UP else rl.KEY_W;
+                const down_key = if (mode == .SinglePlayer) rl.KEY_DOWN else if (i == 1) rl.KEY_DOWN else rl.KEY_S;
+                if (rl.IsKeyDown(up_key)) {
                     if (p.pos.y + (PADDLE_SPEED * -1) * delta_time <= 0) {
                         p_arr[i].pos.y = 0;
                     } else {
                         p_arr[i].pos.y += (PADDLE_SPEED * -1) * delta_time;
                     }
                 }
-                if (rl.IsKeyDown(rl.KEY_DOWN)) {
+                if (rl.IsKeyDown(down_key)) {
                     p_arr[i].dir = .Down;
                     if (p.pos.y + p.h + PADDLE_SPEED * delta_time >= screen_height) {
                         p_arr[i].pos.y = screen_height - p.h;
