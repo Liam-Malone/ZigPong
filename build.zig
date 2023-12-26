@@ -1,5 +1,5 @@
 const std = @import("std");
-const ray = @import("lib/raylib-5.0/src/build.zig");
+const ray = @import("deps/raylib-5.0/src/build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
     });
 
     var rl = ray.addRaylib(b, target, optimize, .{});
-    exe.addIncludePath(.{ .path = "libs/raylib-5.0/src" });
+    exe.addIncludePath(.{ .path = "deps/raylib-5.0/src" });
     exe.linkLibrary(rl);
 
     b.installArtifact(exe);
