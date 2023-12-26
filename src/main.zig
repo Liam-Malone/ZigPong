@@ -87,6 +87,10 @@ const BALL_SPEED = 800;
 const BALL_RADIUS = 8;
 const PADDLE_HEIGHT = 80;
 const PADDLE_WIDTH = 10;
+const PLAYER_ONE = 0; // index of player one's score in scores array
+const PLAYER_TWO = 1; // index of player two's score in scores array
+const HIT_SOUND = 0; // index of hit in sound array
+const SCORE_SOUND = 1; // index of score in sound array
 
 // END CONSTANTS
 
@@ -97,6 +101,20 @@ pub fn main() !void {
     const window_scale = 80;
     const screen_width = 16 * window_scale;
     const screen_height = 10 * window_scale;
+
+    rl.InitWindow(screen_width, screen_height, "platformer");
+    defer rl.CloseWindow();
+
+    rl.InitAudioDevice();
+    defer rl.CloseAudioDevice();
+
+    var sounds: [2]rl.Sound = [2]rl.Sound{
+        rl.LoadSound("sounds/coin.wav"),
+        rl.LoadSound("sounds/target.ogg"),
+    };
+    defer for (sounds, 0..) |_, i| {
+        rl.UnloadSound(sounds[i]);
+    };
 
     var paddles: [2]Paddle = .{
         .{
@@ -118,26 +136,28 @@ pub fn main() !void {
     };
 
     var game_stage: GameStage = .Menu;
+    var victor: ?PaddleID = null;
 
-    rl.InitWindow(screen_width, screen_height, "platformer");
-    defer rl.CloseWindow();
-
-    rl.SetTargetFPS(60);
+    rl.SetTargetFPS(FPS);
     rl.SetExitKey(EXIT_KEY);
 
-    while (!rl.WindowShouldClose()) {
+    var quit = false;
+
+    while (!rl.WindowShouldClose() and !quit) {
         // UPDATE VARIABLES
         const delta_time: f32 = rl.GetFrameTime();
         switch (game_stage) {
             .Menu => {
-                paddles[0].p_type = .AI;
-                paddles[1].p_type = .AI;
+                victor = null;
+                paddles[PLAYER_ONE].p_type = .AI;
+                paddles[PLAYER_TWO].p_type = .AI;
                 scores = .{ 0, 0 };
+                if (rl.IsKeyPressed(rl.KEY_Q)) quit = true;
                 if (rl.IsKeyPressed(rl.KEY_ONE)) {
-                    paddles[0].p_type = .Human;
+                    paddles[PLAYER_ONE].p_type = .Human;
                     game_stage = .Play;
                 } else if (rl.IsKeyPressed(rl.KEY_TWO)) {
-                    paddles[1].p_type = .Human;
+                    paddles[PLAYER_TWO].p_type = .Human;
                     game_stage = .Play;
                 } else if (rl.IsKeyPressed(rl.KEY_SPACE)) {
                     game_stage = .Play;
@@ -150,15 +170,22 @@ pub fn main() !void {
             },
             .Play => {
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Pause;
-                update_paddles(&paddles, &ball, screen_height, delta_time);
-                update_ball(&ball, &paddles, &scores, screen_width, screen_height, delta_time);
+                update(&paddles, &ball, &scores, &sounds, screen_width, screen_height, delta_time);
+                if (scores[PLAYER_ONE] >= MAX_SCORE) {
+                    victor = .PlayerOne;
+                    game_stage = .Over;
+                } else if (scores[PLAYER_TWO] >= MAX_SCORE) {
+                    victor = .PlayerTwo;
+                    game_stage = .Over;
+                }
             },
             .Pause => {
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Play;
                 if (rl.IsKeyPressed(rl.KEY_ESCAPE)) game_stage = .Menu;
             },
             .Over => {
-                if (rl.GetKeyPressed() != 0) game_stage = .Play;
+                if (rl.IsKeyPressed(rl.KEY_ENTER)) game_stage = .Menu;
+                if (rl.IsKeyPressed(rl.KEY_Q)) quit = true;
             },
         }
         // DRAW
@@ -168,8 +195,11 @@ pub fn main() !void {
         rl.ClearBackground(rl.BLACK);
         switch (game_stage) {
             .Menu => {
-                rl.DrawText("Press 1 Or 2 To Select Player", screen_width / 20 * 7, (screen_height / 8) * 3, 24, rl.RAYWHITE);
-                rl.DrawText("(Or SPACEBAR To Let It Play Itself)", screen_width / 10 * 3, (screen_height / 8) * 7, 24, rl.RAYWHITE);
+                rl.DrawText("SELECT PLAYER", screen_width / 20 * 7, (screen_height / 4), 40, rl.RAYWHITE);
+                rl.DrawText("[1] Player One", screen_width / 5, (screen_height / 8) * 3, 30, rl.RAYWHITE);
+                rl.DrawText("[2] Player Two", screen_width / 5 * 3, (screen_height / 8) * 3, 30, rl.RAYWHITE);
+                rl.DrawText("[SPACEBAR] Demo mode", screen_width / 20 * 7, (screen_height / 8) * 5, 30, rl.RAYWHITE);
+                rl.DrawText("[Q] Quit", screen_width / 20 * 7, screen_height / 9 * 7, 30, rl.RAYWHITE);
             },
             .Play => {
                 for (paddles) |p| {
@@ -177,7 +207,7 @@ pub fn main() !void {
                 }
                 rl.DrawCircleV(ball.pos, ball.radius, rl.RAYWHITE);
 
-                var tmp = std.fmt.allocPrint(alloc, "{d} | {d} ", .{ scores[1], scores[0] }) catch "err";
+                var tmp = std.fmt.allocPrint(alloc, "{d} | {d} ", .{ scores[PLAYER_ONE], scores[PLAYER_TWO] }) catch "err";
                 defer alloc.free(tmp);
                 @constCast(tmp)[tmp.len - 1] = 0;
                 const scores_str = tmp[0 .. tmp.len - 1 :0];
@@ -202,7 +232,12 @@ pub fn main() !void {
                 )) game_stage = .Play;
             },
             .Over => {
-                // game over screen and UI
+                switch (victor.?) {
+                    .PlayerOne => rl.DrawText("Player One Wins", screen_width / 20 * 7, screen_height / 2, 40, rl.RAYWHITE),
+                    .PlayerTwo => rl.DrawText("Player Two Wins", screen_width / 20 * 7, screen_height / 2, 40, rl.RAYWHITE),
+                }
+                rl.DrawText("[ENTER] Return To Menu", screen_width / 20 * 7, screen_height / 3 * 2, 30, rl.RAYWHITE);
+                rl.DrawText("[Q] Quit", screen_width / 20 * 7, screen_height / 9 * 7, 30, rl.RAYWHITE);
             },
         }
     }
@@ -234,7 +269,7 @@ fn pause_button(pos: rl.Vector2, w: f32, h: f32, gs: *GameStage, col: rl.Color) 
         rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
     {
         return true;
-    }
+    } else return false;
 }
 
 fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage, col: rl.Color) bool {
@@ -247,10 +282,11 @@ fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage,
         rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
     {
         return true;
-    }
+    } else return false;
 }
 
-fn update_paddles(p_arr: []Paddle, ball: *Ball, screen_height: f32, delta_time: f32) void {
+fn update(p_arr: []Paddle, ball: *Ball, scores: []u8, sounds: []rl.Sound, screen_width: f32, screen_height: f32, delta_time: f32) void {
+    // PADDLES
     for (p_arr, 0..) |p, i| {
         switch (p.p_type) {
             .Human => {
@@ -297,43 +333,45 @@ fn update_paddles(p_arr: []Paddle, ball: *Ball, screen_height: f32, delta_time: 
             },
         }
     }
-}
 
-fn update_ball(b: *Ball, p_arr: []Paddle, scores: []u8, screen_width: f32, screen_height: f32, delta_time: f32) void {
-    if (b.pos.x > screen_width) {
-        b.pos.x = screen_width / 2;
-        b.dx *= -1;
-        scores[1] += 1;
+    // BALL AND SCORES
+    if (ball.pos.x > screen_width) {
+        ball.pos.x = screen_width / 2;
+        ball.dx *= -1;
+        scores[PLAYER_ONE] += 1;
+        rl.PlaySound(sounds[SCORE_SOUND]);
         return;
-    } else if (b.pos.x < 0) {
-        b.pos.x = screen_width / 2;
-        b.dx *= -1;
-        scores[0] += 1;
+    } else if (ball.pos.x < 0) {
+        ball.pos.x = screen_width / 2;
+        ball.dx *= -1;
+        scores[PLAYER_TWO] += 1;
+        rl.PlaySound(sounds[SCORE_SOUND]);
         return;
     }
     // check for collision
-    if (b.pos.y <= 0 or b.pos.y + b.radius >= screen_height) {
-        b.pos.y -= b.dy * delta_time;
-        b.dy *= -1;
+    if (ball.pos.y <= 0 or ball.pos.y + ball.radius >= screen_height) {
+        ball.pos.y -= ball.dy * delta_time;
+        ball.dy *= -1;
         return;
     }
 
     for (p_arr) |p| {
-        if (p.pos.x <= b.pos.x + b.radius + b.dx * delta_time and
-            p.pos.x + p.w >= b.pos.x + b.dx * delta_time and
-            p.pos.y + p.h >= b.pos.y - b.radius + b.dx * delta_time and
-            p.pos.y <= b.pos.y + b.dx * delta_time)
+        if (p.pos.x <= ball.pos.x + ball.radius + ball.dx * delta_time and
+            p.pos.x + p.w >= ball.pos.x + ball.dx * delta_time and
+            p.pos.y + p.h >= ball.pos.y - ball.radius + ball.dx * delta_time and
+            p.pos.y <= ball.pos.y + ball.dx * delta_time)
         {
-            b.pos.x = switch (p.id) {
-                .PlayerTwo => p.pos.x - b.radius,
-                .PlayerOne => p.pos.x + p.w + b.radius,
+            ball.pos.x = switch (p.id) {
+                .PlayerTwo => p.pos.x - ball.radius,
+                .PlayerOne => p.pos.x + p.w + ball.radius,
             };
-            b.dx *= -1;
-            b.dy += p.dy;
+            ball.dx *= -1;
+            ball.dy += p.dy;
+            rl.PlaySound(sounds[HIT_SOUND]);
             return;
         }
     }
 
-    b.pos.x += b.dx * delta_time;
-    b.pos.y += b.dy * delta_time;
+    ball.pos.x += ball.dx * delta_time;
+    ball.pos.y += ball.dy * delta_time;
 }
