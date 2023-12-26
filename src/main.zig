@@ -197,16 +197,58 @@ pub fn main() !void {
                 @constCast(tmp)[tmp.len - 1] = 0;
                 const scores_str = tmp[0 .. tmp.len - 1 :0];
                 rl.DrawText(scores_str, screen_width / 2 - 30, 80, 30, rl.RAYWHITE);
-                rl.DrawFPS(40, 40);
+                //rl.DrawFPS(40, 40);
+                pause_button(.{ .x = 60, .y = 40 }, 40, 40, &game_stage, rl.RAYWHITE);
             },
             .Pause => {
                 // Draw Pause UI
                 rl.DrawText("Game Paused", screen_width / 5 * 2, screen_height / 2, 40, rl.RAYWHITE);
+                resume_button(.{ .x = 60, .y = 40 }, .{ .x = 60, .y = 80 }, .{ .x = 100, .y = 60 }, &game_stage, rl.RAYWHITE);
             },
             .Over => {
                 // game over screen and UI
             },
         }
+    }
+}
+
+fn pause_button(pos: rl.Vector2, w: f32, h: f32, gs: *GameStage, col: rl.Color) void {
+    rl.DrawRectangleRec(.{
+        .x = pos.x,
+        .y = pos.y,
+        .width = w / 4,
+        .height = h,
+    }, col);
+    rl.DrawRectangleRec(.{
+        .x = pos.x + w / 4 * 3,
+        .y = pos.y,
+        .width = w / 4,
+        .height = h,
+    }, col);
+
+    const mouse_pos = rl.GetMousePosition();
+
+    if (rl.CheckCollisionPointRec(mouse_pos, .{
+        .x = pos.x,
+        .y = pos.y,
+        .width = w,
+        .height = h,
+    }) and
+        rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
+    {
+        gs.* = .Pause;
+    }
+}
+
+fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage, col: rl.Color) void {
+    rl.DrawTriangle(v1, v2, v3, col);
+
+    const mouse_pos = rl.GetMousePosition();
+
+    if (rl.CheckCollisionPointTriangle(mouse_pos, v1, v2, v3) and
+        rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
+    {
+        gs.* = .Play;
     }
 }
 
@@ -263,12 +305,12 @@ fn update_ball(b: *Ball, p_arr: []Paddle, scores: []u8, screen_width: f32, scree
     if (b.pos.x > screen_width) {
         b.pos.x = screen_width / 2;
         b.dx *= -1;
-        scores[0] += 1;
+        scores[1] += 1;
         return;
     } else if (b.pos.x < 0) {
         b.pos.x = screen_width / 2;
         b.dx *= -1;
-        scores[1] += 1;
+        scores[0] += 1;
         return;
     }
     // check for collision
