@@ -117,16 +117,6 @@ pub fn main() !void {
         },
     };
 
-    var camera = rl.Camera2D{
-        .zoom = 0.75,
-        .offset = rl.Vector2{ .x = screen_width / 2, .y = screen_height / 2 },
-        .rotation = 0,
-        .target = .{
-            .x = (screen_width / 2),
-            .y = (screen_width / 2),
-        },
-    };
-    _ = camera;
     var game_stage: GameStage = .Menu;
 
     rl.InitWindow(screen_width, screen_height, "platformer");
@@ -136,8 +126,8 @@ pub fn main() !void {
     rl.SetExitKey(EXIT_KEY);
 
     while (!rl.WindowShouldClose()) {
-        const delta_time: f32 = rl.GetFrameTime();
         // UPDATE VARIABLES
+        const delta_time: f32 = rl.GetFrameTime();
         switch (game_stage) {
             .Menu => {
                 paddles[0].p_type = .AI;
@@ -157,22 +147,17 @@ pub fn main() !void {
                 for (paddles, 0..) |p, i| {
                     if (p.p_type == .AI) paddles[i].dy = PADDLE_SPEED * delta_time;
                 }
-                // opening menu
             },
             .Play => {
-                // play game
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Pause;
                 update_paddles(&paddles, &ball, screen_height, delta_time);
                 update_ball(&ball, &paddles, &scores, screen_width, screen_height, delta_time);
             },
             .Pause => {
-                // pause game
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Play;
                 if (rl.IsKeyPressed(rl.KEY_ESCAPE)) game_stage = .Menu;
-                // handle clicking of UI elements
             },
             .Over => {
-                // game over screen
                 if (rl.GetKeyPressed() != 0) game_stage = .Play;
             },
         }
@@ -197,13 +182,24 @@ pub fn main() !void {
                 @constCast(tmp)[tmp.len - 1] = 0;
                 const scores_str = tmp[0 .. tmp.len - 1 :0];
                 rl.DrawText(scores_str, screen_width / 2 - 30, 80, 30, rl.RAYWHITE);
-                //rl.DrawFPS(40, 40);
-                pause_button(.{ .x = 60, .y = 40 }, 40, 40, &game_stage, rl.RAYWHITE);
+
+                if (pause_button(
+                    .{ .x = 60, .y = 40 },
+                    40,
+                    40,
+                    &game_stage,
+                    rl.RAYWHITE,
+                )) game_stage = .Pause;
             },
             .Pause => {
-                // Draw Pause UI
                 rl.DrawText("Game Paused", screen_width / 5 * 2, screen_height / 2, 40, rl.RAYWHITE);
-                resume_button(.{ .x = 60, .y = 40 }, .{ .x = 60, .y = 80 }, .{ .x = 100, .y = 60 }, &game_stage, rl.RAYWHITE);
+                if (resume_button(
+                    .{ .x = 60, .y = 40 },
+                    .{ .x = 60, .y = 80 },
+                    .{ .x = 100, .y = 60 },
+                    &game_stage,
+                    rl.RAYWHITE,
+                )) game_stage = .Play;
             },
             .Over => {
                 // game over screen and UI
@@ -212,7 +208,8 @@ pub fn main() !void {
     }
 }
 
-fn pause_button(pos: rl.Vector2, w: f32, h: f32, gs: *GameStage, col: rl.Color) void {
+fn pause_button(pos: rl.Vector2, w: f32, h: f32, gs: *GameStage, col: rl.Color) bool {
+    _ = gs;
     rl.DrawRectangleRec(.{
         .x = pos.x,
         .y = pos.y,
@@ -236,11 +233,12 @@ fn pause_button(pos: rl.Vector2, w: f32, h: f32, gs: *GameStage, col: rl.Color) 
     }) and
         rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
     {
-        gs.* = .Pause;
+        return true;
     }
 }
 
-fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage, col: rl.Color) void {
+fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage, col: rl.Color) bool {
+    _ = gs;
     rl.DrawTriangle(v1, v2, v3, col);
 
     const mouse_pos = rl.GetMousePosition();
@@ -248,7 +246,7 @@ fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage,
     if (rl.CheckCollisionPointTriangle(mouse_pos, v1, v2, v3) and
         rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT))
     {
-        gs.* = .Play;
+        return true;
     }
 }
 
