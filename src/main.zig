@@ -158,7 +158,6 @@ pub fn main() !void {
         switch (game_stage) {
             .Menu => {
                 if (new_time > (1000 * 12) and new_time - (1000 * 12) > demo_timer) {
-                    std.debug.print("old: {d}\nnew: {d}\n", .{ demo_timer, new_time });
                     demo_timer = new_time;
                     play_mode = .Demo;
                     for (paddles, 0..) |_, i| {
