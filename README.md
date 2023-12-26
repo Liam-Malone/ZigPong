@@ -30,6 +30,8 @@ Multiplayer Mode:
 Left Player Uses W and S to move.
 Right Player uses Up and Down arrows to move.
 
+Sound Effects are taken from Raylib's examples/audio/resources directory
+
 ## Screenshots
 
 ![screenshot](screenshots/game-screenshot.png)
