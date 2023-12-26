@@ -196,9 +196,12 @@ pub fn main() !void {
                 switch (play_mode) {
                     .Demo => {
                         update(&paddles, &ball, &scores, &sounds, play_mode, screen_width, screen_height, delta_time);
-                        if (scores[PLAYER_ONE] >= MAX_SCORE or
-                            scores[PLAYER_TWO] >= MAX_SCORE)
+                        if (scores[PLAYER_ONE] >= MAX_SCORE / 2 or
+                            scores[PLAYER_TWO] >= MAX_SCORE / 2)
+                        {
                             game_stage = .Menu;
+                            demo_timer = std.time.milliTimestamp();
+                        }
                         if (rl.IsKeyPressed(rl.KEY_SPACE)) {
                             demo_timer = std.time.milliTimestamp();
                             game_stage = .Menu;
