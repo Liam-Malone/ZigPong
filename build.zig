@@ -1,7 +1,7 @@
 const std = @import("std");
 const ray = @import("deps/raylib-5.0/src/build.zig");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
@@ -42,4 +42,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    const stdout = std.io.getStdOut().writer();
+    try stdout.print("Completed program build for {any}\n", .{target.getOsTag()});
 }

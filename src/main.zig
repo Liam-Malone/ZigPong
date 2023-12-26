@@ -170,6 +170,7 @@ pub fn main() !void {
                 if (rl.IsKeyPressed(rl.KEY_ONE)) {
                     play_mode = .SinglePlayer;
                     paddles[PLAYER_ONE].p_type = .Human;
+                    paddles[PLAYER_TWO].p_type = .AI;
                     game_stage = .Play;
                 } else if (rl.IsKeyPressed(rl.KEY_TWO)) {
                     play_mode = .MultiPlayer;
@@ -194,21 +195,21 @@ pub fn main() !void {
             .Play => {
                 switch (play_mode) {
                     .Demo => {
-                        update(&paddles, &ball, &scores, &sounds, play_mode, screen_width, screen_height, delta_time);
+                        update(&paddles, &ball, &scores, &sounds, screen_width, screen_height, delta_time);
                         if (scores[PLAYER_ONE] >= MAX_SCORE / 2 or
                             scores[PLAYER_TWO] >= MAX_SCORE / 2)
                         {
                             game_stage = .Menu;
                             demo_timer = std.time.milliTimestamp();
                         }
-                        if (rl.IsKeyPressed(rl.KEY_SPACE)) {
+                        if (rl.GetKeyPressed() != 0) {
                             demo_timer = std.time.milliTimestamp();
                             game_stage = .Menu;
                         }
                     },
                     .SinglePlayer, .MultiPlayer => {
                         if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Pause;
-                        update(&paddles, &ball, &scores, &sounds, play_mode, screen_width, screen_height, delta_time);
+                        update(&paddles, &ball, &scores, &sounds, screen_width, screen_height, delta_time);
                         if (scores[PLAYER_ONE] >= MAX_SCORE) {
                             victor = .PlayerOne;
                             game_stage = .Over;
@@ -221,7 +222,7 @@ pub fn main() !void {
             },
             .Pause => {
                 if (rl.IsKeyPressed(rl.KEY_SPACE)) game_stage = .Play;
-                if (rl.IsKeyPressed(rl.KEY_ESCAPE)) {
+                if (rl.IsKeyPressed(rl.KEY_M)) {
                     game_stage = .Menu;
                     demo_timer = std.time.milliTimestamp();
                 }
@@ -276,6 +277,7 @@ pub fn main() !void {
                     &game_stage,
                     rl.RAYWHITE,
                 )) game_stage = .Play;
+                rl.DrawText("[M] Return To Menu", screen_width / 20 * 7, screen_height / 3 * 2, 30, rl.RAYWHITE);
             },
             .Over => {
                 switch (victor.?) {
@@ -331,13 +333,13 @@ fn resume_button(v1: rl.Vector2, v2: rl.Vector2, v3: rl.Vector2, gs: *GameStage,
     } else return false;
 }
 
-fn update(p_arr: []Paddle, ball: *Ball, scores: []u8, sounds: []rl.Sound, mode: PlayMode, screen_width: f32, screen_height: f32, delta_time: f32) void {
+fn update(p_arr: []Paddle, ball: *Ball, scores: []u8, sounds: []rl.Sound, screen_width: f32, screen_height: f32, delta_time: f32) void {
     // PADDLES
     for (p_arr, 0..) |p, i| {
         switch (p.p_type) {
             .Human => {
-                const up_key = if (mode == .SinglePlayer) rl.KEY_UP else if (i == 1) rl.KEY_UP else rl.KEY_W;
-                const down_key = if (mode == .SinglePlayer) rl.KEY_DOWN else if (i == 1) rl.KEY_DOWN else rl.KEY_S;
+                const up_key = if (i == 1) rl.KEY_UP else rl.KEY_W;
+                const down_key = if (i == 1) rl.KEY_DOWN else rl.KEY_S;
                 if (rl.IsKeyDown(up_key)) {
                     if (p.pos.y + (PADDLE_SPEED * -1) * delta_time <= 0) {
                         p_arr[i].pos.y = 0;

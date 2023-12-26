@@ -1,8 +1,6 @@
 # Pong
 
-![screenshot](screenshots/game-screenshot.png)
 ![screenshot](screenshots/menu-screenshot.png)
-![screenshot](screenshots/pause-screenshot.png)
 
 GUI Pong game in Zig, using Raylib (Re-written from SDL2)
 
@@ -24,9 +22,16 @@ I have a release available with a windows binary
 
 Linux users, feel free to try to run this with WINE
 
-> NOTE: The binary is for an older build, the current iteration isn't quite ready for a 'release' yet
-
 ## How To Play
 
-It's pong. Simple enough really
+Pong. Hit ball, don't let ball go past your paddle.
 
+Multiplayer Mode: 
+Left Player Uses W and S to move.
+Right Player uses Up and Down arrows to move.
+
+## Screenshots
+
+![screenshot](screenshots/game-screenshot.png)
+![screenshot](screenshots/pause-screenshot.png)
+![screenshot](screenshots/victory-screenshot.png)
