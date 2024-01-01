@@ -2,7 +2,7 @@
 
 ![screenshot](screenshots/menu-screenshot.png)
 
-GUI Pong game in Zig, using Raylib (Re-written from SDL2)
+GUI Pong game in Zig, using Raylib
 
 ## Quick Start
 
